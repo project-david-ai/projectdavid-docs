@@ -1,0 +1,48 @@
+
+\section{Scratchpad Event Interception Protocol (SEIP)}
+
+\subsection*{Problem}
+
+ScratchpadEvent objects contain a `tool` attribute.
+Generic event guards would mistakenly filter them out.
+
+\subsection*{Ordering Constraint}
+
+Event interception MUST precede generic attribute guards.
+
+\subsection*{Algorithm}
+
+For each streamed event $e$:
+
+\[
+\textbf{if } type(e) = ScratchpadEvent:
+\]
+\begin{itemize}
+    \item Construct payload:
+    \[
+    P = \{
+        type: scratchpad\_status,
+        run\_id: R_s,
+        operation: e.operation,
+        state: e.state,
+        origin: research\_worker
+    \}
+    \]
+    \item Include optional fields if non-null:
+    \[
+    \{ tool, activity, assistant\_id, entry \}
+    \]
+    \item Yield $json(P)$
+    \item Continue
+\end{itemize}
+
+Only AFTER this:
+
+\[
+\textbf{if } hasattr(e, tool) \lor hasattr(e, status):
+\quad discard
+\]
+
+\subsection*{Invariant}
+
+Scratchpad events are never swallowed by generic filtering.

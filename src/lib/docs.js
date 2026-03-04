@@ -1,6 +1,7 @@
 /* ──────────────────────────────────────────────────────────────
    src/lib/docs.js
-   – collect markdown pages, expose `pages` map + grouped nav list
+   – collect markdown / tex / tla pages
+   – expose `pages` map + grouped nav list
    – supports explicit slug, nav_order, and optional nav_exclude
    ──────────────────────────────────────────────────────────── */
 
@@ -11,6 +12,7 @@ const categoryDisplayNames = {
   'providers'     : 'PROVIDERS',
   'infrastructure': 'INFRASTRUCTURE',
   'architecture'  : 'ARCHITECTURE',
+  'algorithms'    : 'ALGORITHMS',
 };
 
 const categoryOrder = {
@@ -20,11 +22,11 @@ const categoryOrder = {
   'providers'     : 4,
   'infrastructure': 5,
   'architecture'  : 6,
+  'algorithms'    : 7,
 };
 
-/* ----------  tiny front-matter parser (keeps bundle slim)  ---------- */
+/* ---------- tiny front-matter parser (keeps bundle slim) ---------- */
 function simpleMatter(raw) {
-  // Updated regex to handle invisible BOM characters, leading empty lines, or trailing spaces
   const fm = /^\s*---[ \t]*\r?\n([\s\S]+?)\r?\n---[ \t]*(\r?\n|$)/;
   const m  = fm.exec(raw);
   if (!m) return { data: {}, content: raw };
@@ -33,61 +35,87 @@ function simpleMatter(raw) {
   m[1].split('\n').forEach(line => {
     const stripped = line.replace(/\r$/, '');
     const i = stripped.indexOf(':');
-    if (i > -1) data[stripped.slice(0, i).trim()] = stripped.slice(i + 1).trim();
+    if (i > -1) {
+      data[stripped.slice(0, i).trim()] = stripped.slice(i + 1).trim();
+    }
   });
+
   return { data, content: raw.slice(m[0].length) };
 }
 
-/* ----------  1. grab every .md file (eager for build-time)  ---------- */
-const mdModules = import.meta.glob('../pages/**/*.md', { as: 'raw', eager: true });
+/* ---------- 1. grab every .md, .tex, .tla file (eager) ---------- */
+const docModules = import.meta.glob(
+  '../pages/**/*.{md,tex,tla}',
+  { as: 'raw', eager: true }
+);
 
-/* ----------  2. build the main { slug: { frontmatter, content } } map  ---------- */
-export const pages = Object.entries(mdModules).reduce((acc, [path, raw]) => {
+/* ---------- helper: strip extension safely ---------- */
+function stripExtension(filename) {
+  return filename.replace(/\.(md|tex|tla)$/i, '');
+}
+
+/* ---------- 2. build main { slug: { frontmatter, content, path } } map ---------- */
+export const pages = Object.entries(docModules).reduce((acc, [path, raw]) => {
   const { data, content } = simpleMatter(raw);
 
-  const slug = (data.slug || path.split('/').pop().replace('.md', '')).trim();
+  const filename = path.split('/').pop();
+  const slug = (data.slug || stripExtension(filename)).trim();
 
-  acc[slug] = { frontmatter: data, content };
+  acc[slug] = {
+    frontmatter: data,
+    content,
+    path,
+  };
+
   return acc;
 }, {});
 
-/* ----------  3. sidebar / grouped nav items  ------------------------ */
+/* ---------- 3. sidebar / grouped nav items ---------- */
 export const groupedNavItems = {};
 
-Object.entries(mdModules).forEach(([path, raw]) => {
+Object.entries(docModules).forEach(([path, raw]) => {
   const { data } = simpleMatter(raw);
   if (data.nav_exclude === 'true') return;
 
-  const slug     = (data.slug || path.split('/').pop().replace('.md', '')).trim();
-  const parts    = path.split('/');
+  const filename = path.split('/').pop();
+  const slug = (data.slug || stripExtension(filename)).trim();
+
+  const parts = path.split('/');
   const category = data.category || parts[parts.length - 2];
 
-  if (!groupedNavItems[category]) groupedNavItems[category] = [];
+  if (!groupedNavItems[category]) {
+    groupedNavItems[category] = [];
+  }
 
   groupedNavItems[category].push({
     slug,
-    route    : `/docs/${slug}`,
+    route: `/docs/${slug}`,
     nav_order: data.nav_order !== undefined ? Number(data.nav_order) : undefined,
-    label    :
+    label:
       data.title
         ? data.title.replace(/<[^>]+>/g, '')
-        : slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        : slug
+            .replace(/-/g, ' ')
+            .replace(/\b\w/g, c => c.toUpperCase()),
   });
 });
 
-/* ----------  4. sort each category by nav_order, then alphabetically  ---------- */
+/* ---------- 4. sort each category by nav_order, then alphabetically ---------- */
 Object.values(groupedNavItems).forEach(arr =>
   arr.sort((a, b) => {
     const orderA = a.nav_order !== undefined ? a.nav_order : 999;
     const orderB = b.nav_order !== undefined ? b.nav_order : 999;
+
     if (orderA !== orderB) return orderA - orderB;
     return a.label.localeCompare(b.label);
   })
 );
 
-/* ----------  5. export category keys in explicit order  ---------- */
+/* ---------- 5. export category keys in explicit order ---------- */
 export const sortedGroupKeys = Object.keys(groupedNavItems).sort((a, b) => {
   const orderA = categoryOrder[a] ?? 999;
   const orderB = categoryOrder[b] ?? 999;
   return orderA - orderB;
 });
+
+export { categoryDisplayNames };

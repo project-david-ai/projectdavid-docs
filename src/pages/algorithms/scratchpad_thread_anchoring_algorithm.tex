@@ -1,0 +1,34 @@
+\section{Scratchpad Thread Anchoring Algorithm (STAA)}
+
+\subsection*{Problem}
+
+Ensure worker agents append to the supervisor’s shared scratchpad thread
+rather than their own ephemeral thread.
+
+\subsection*{Inputs}
+
+\begin{itemize}
+    \item $meta\_scratchpad$ (from run metadata)
+    \item $thread\_id$ (current thread)
+\end{itemize}
+
+\subsection*{Algorithm}
+
+\[
+\textbf{if } meta\_scratchpad \neq \varnothing:
+\quad scratch\_pad\_thread \leftarrow meta\_scratchpad
+\]
+
+\[
+\textbf{else}:
+\quad scratch\_pad\_thread \leftarrow thread\_id
+\]
+
+\subsection*{Properties}
+
+\begin{itemize}
+    \item Deterministic selection
+    \item Preserves supervisor-worker shared state
+    \item Prevents thread divergence
+    \item $O(1)$ complexity
+\end{itemize}

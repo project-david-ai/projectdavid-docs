@@ -1,0 +1,60 @@
+\section{Identity Rebinding State Transition (IRST)}
+
+\subsection*{Problem}
+
+Conditionally replace the active assistant identity with an ephemeral supervisor identity,
+and rehydrate configuration state accordingly.
+
+\subsection*{Precondition}
+
+\[
+role \in \{Engineer, DeepResearchSupervisor\}
+\]
+
+\subsection*{State Before}
+
+\[
+S_0 =
+\begin{cases}
+assistant\_id = A_0 \\
+assistant\_config = C_0
+\end{cases}
+\]
+
+\subsection*{Transition}
+
+\begin{enumerate}
+    \item Create ephemeral supervisor entity $A_1$
+    \item Create ephemeral worker thread $T_w$
+    \item Set:
+    \[
+    assistant\_id \leftarrow A_1
+    \]
+    \item Flush configuration:
+    \[
+    assistant\_config \leftarrow \varnothing
+    \]
+    \item Reload configuration for $A_1$
+    \item Set delegated model:
+    \[
+    delegation\_model \leftarrow f(requested\_model)
+    \]
+\end{enumerate}
+
+\subsection*{State After}
+
+\[
+S_1 =
+\begin{cases}
+assistant\_id = A_1 \\
+assistant\_config = C_1
+\end{cases}
+\]
+
+\subsection*{Properties}
+
+\begin{itemize}
+    \item Deterministic state mutation
+    \item Controlled authority reassignment
+    \item $O(1)$ orchestration complexity
+\end{itemize}

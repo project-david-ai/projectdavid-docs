@@ -1,0 +1,94 @@
+---
+title: Retry Policy Invariant
+category: algorithms
+slug: retry-policy-invariant
+nav_order: 6
+status: proposed
+---
+
+\section{Retry Policy Invariant}
+
+\subsection*{Status}
+
+\textbf{Partially implemented.} $\Pi_2$ is fully implemented. $\Pi_1$ is
+structurally present but behaviourally soft. $\Pi_3$ is infrastructure-dependent.
+$\Pi_4$ is the primary open gap.
+
+\subsection*{Definition}
+
+\[ RPI \triangleq \Pi_1 \wedge \Pi_2 \wedge \Pi_3 \wedge \Pi_4 \]
+
+\subsection*{$\Pi_1$ — Supervisor Persistence}
+
+\[ \square \left( f(C) = incomplete \wedge d < D_S \rightarrow \Diamond\ Delegating \right) \]
+
+The \texttt{while turn\_count < max\_turns} loop provides the structural container.
+Re-delegation occurs if and only if the LLM emits a tool call.
+The \texttt{L4\_EXECUTION\_LOOP} instructions enforce this behaviourally.
+
+\textbf{Hardening required:} a tool-call guard that detects premature synthesis
+(text reply with unresolved scratchpad entries) and forces re-delegation rather
+than accepting the LLM's exit as a clean completion.
+
+\textbf{Status:} ⚠️ Soft — structural container present, hard guard missing.
+
+\subsection*{$\Pi_2$ — Worker Liveness}
+
+\[ \square \left( WorkerRunning \rightarrow \Diamond_{\leq T_W}\ WorkerCompletes \right) \]
+
+\textbf{Implemented.} \texttt{\_WORKER\_RUN\_TIMEOUT = 1200s} in \texttt{DelegationMixin}.
+\texttt{\_wait\_for\_run\_completion} raises \texttt{asyncio.TimeoutError} on expiry,
+caught in \texttt{handle\_delegate\_research\_task}, converted to an error tool output.
+The supervisor loop continues. $WF_{\text{vars}}(WorkerCompletes)$ in the TLA+ spec
+is sound against this mechanism.
+
+\textbf{Status:} ✅ Implemented.
+
+\subsection*{$\Pi_3$ — Fair Scheduling}
+
+\[ \square \left( WorkerPending \rightarrow \Diamond\ WorkerScheduled \right) \]
+
+Ephemeral runs are created via \texttt{create\_ephemeral\_run} and polled at 2.0s
+intervals. Actual fairness depends on the task queue infrastructure (Celery or
+equivalent) outside this codebase.
+
+\textbf{Verification required:} confirm fair queue semantics at the infrastructure
+level. If Celery workers are saturated, newly created ephemeral runs may queue
+indefinitely — $\Pi_3$ would fail silently.
+
+\textbf{Status:} ⚠️ Infrastructure-dependent.
+
+\subsection*{$\Pi_4$ — Supervisor Recovery}
+
+\[ \square \left( d = D_S \wedge f(C) = incomplete \rightarrow \Diamond\ RecoveryInvoked \right) \]
+
+\textbf{Not implemented.} When \texttt{turn\_count = max\_turns}, the current
+implementation yields a hard error and stamps \texttt{failed\_at}. No recovery
+handler exists.
+
+\textbf{Required implementation:} before exiting the \texttt{process\_conversation}
+loop at max turns, check \texttt{get\_function\_call\_state()} and scratchpad state.
+If $f(C) = incomplete$, invoke one of:
+
+\begin{itemize}
+  \item \textbf{Scope reduction}: re-enter delegation with a simplified task derived
+        from verified scratchpad entries
+  \item \textbf{Partial synthesis}: enter $Synthesizing$ with the verified subset
+        and explicitly flag unresolved claims to the caller
+  \item \textbf{Escalation}: emit a structured escalation event for the caller to handle
+\end{itemize}
+
+Any of these closes $\Pi_4$. The choice depends on product requirements.
+
+\textbf{Status:} ❌ Not implemented.
+
+\subsection*{Responsibility Boundary}
+
+\begin{itemize}
+  \item $\Pi_1$: algorithmic — hardenable in \texttt{process\_conversation}
+  \item $\Pi_2$: runtime — implemented via \texttt{\_WORKER\_RUN\_TIMEOUT}
+  \item $\Pi_3$: infrastructure — requires Celery-level verification
+  \item $\Pi_4$: implementation — requires a recovery handler in \texttt{process\_conversation}
+\end{itemize}
+
+Under $RPI$, the Liveness Theorem holds. See \textit{Liveness Theorem}.

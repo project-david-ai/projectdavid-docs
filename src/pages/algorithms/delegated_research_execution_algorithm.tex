@@ -1,0 +1,81 @@
+\section{Delegated Research Execution Algorithm (DREA)}
+
+\subsection*{Goal}
+
+Spawn an isolated worker agent, stream its reasoning and scratchpad events,
+wait for terminal completion, extract final report, and reintegrate output
+into supervisor context.
+
+\subsection*{Inputs}
+
+\begin{itemize}
+    \item Supervisor thread $T_s$
+    \item Supervisor run $R_s$
+    \item Assistant $A_s$
+    \item Tool call ID $C$
+    \item Arguments $Args$
+\end{itemize}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+
+\item Resolve origin user identity:
+\[
+U \leftarrow retrieve(R_s).user\_id
+\]
+
+\item Spawn ephemeral worker assistant:
+\[
+A_w \leftarrow create\_ephemeral\_worker()
+\]
+
+\item Spawn ephemeral worker thread:
+\[
+T_w \leftarrow create\_thread(U)
+\]
+
+\item Stamp meta-data:
+\[
+meta := \{ owner=U, scratchpad=T_s \}
+\]
+
+\item Create worker run:
+\[
+R_w \leftarrow create\_run(A_w, T_w, meta)
+\]
+
+\item Stream worker events:
+\[
+\forall e \in stream(R_w):
+\]
+\begin{itemize}
+    \item If $e$ is ScratchpadEvent → forward as structured JSON
+    \item If $e$ is reasoning → forward as reasoning chunk
+    \item If $e$ is content → accumulate + forward
+\end{itemize}
+
+\item Wait until:
+\[
+status(R_w) \in \{completed, failed, expired, cancelled\}
+\]
+
+\item Retrieve final report from $T_w$
+
+\item Submit tool output back to supervisor:
+\[
+submit\_tool\_output(T_s, A_s, C, report)
+\]
+
+\item Cleanup ephemeral resources
+
+\end{enumerate}
+
+\subsection*{Properties}
+
+\begin{itemize}
+    \item Isolated execution context
+    \item Deterministic reintegration
+    \item Scratchpad event passthrough
+    \item Bounded execution time
+\end{itemize}

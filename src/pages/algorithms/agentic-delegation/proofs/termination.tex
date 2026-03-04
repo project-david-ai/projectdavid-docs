@@ -1,0 +1,91 @@
+---
+title: Termination Under Bounded Delegation
+category: algorithms
+slug: termination-bounded-delegation
+nav_order: 3
+status: current
+---
+
+\section{Termination Under Bounded Delegation}
+
+\subsection*{Implementation Constants}
+
+The proof below is grounded in two concrete bounds present in the codebase:
+
+\begin{itemize}
+  \item \textbf{Supervisor turn bound}: $D_S = 200$ — \texttt{max\_turns} in
+        \texttt{process\_conversation} (\texttt{orchestrator\_core.py})
+  \item \textbf{Worker execution timeout}: $T_W = 1200\text{s}$ —
+        \texttt{\_WORKER\_RUN\_TIMEOUT} in \texttt{DelegationMixin}
+\end{itemize}
+
+Both bounds are finite. Together they guarantee the system cannot run indefinitely.
+
+\subsection*{Definitions}
+
+Let $D_S \in \mathbb{N}$ be the maximum supervisor turn count.
+
+Let $T_W \in \mathbb{R}^+$ be the maximum wall-clock time per worker run.
+
+Let the supervisor state machine include:
+
+\[ \{Delegating,\ Awaiting,\ Evaluating,\ Synthesizing,\ Terminated\} \]
+
+Let:
+
+\[ f: C \rightarrow \{complete,\ incomplete\} \]
+
+be the evaluation function — in the implementation, this is the LLM's decision
+to emit a tool call (incomplete) or a terminal text reply (complete).
+
+\subsection*{Transition Rules}
+
+\[ Evaluating \rightarrow Delegating \quad \text{iff } f(C) = incomplete \text{ and } d < D_S \]
+
+\[ Evaluating \rightarrow Synthesizing \quad \text{iff } f(C) = complete \text{ or } d \geq D_S \]
+
+Each turn increments the counter:
+
+\[ d := d + 1 \]
+
+\subsection*{Bounded Constraint}
+
+\[ d \leq D_S = 200 \quad \text{and} \quad T_{worker} \leq T_W = 1200\text{s} \]
+
+\subsection*{Theorem}
+
+Given $D_S < \infty$ and $T_W < \infty$, total execution terminates.
+
+\subsection*{Proof}
+
+\textbf{Worker termination:} Each worker run either completes or is interrupted by
+\texttt{\_wait\_for\_run\_completion} after $T_W = 1200\text{s}$.
+\texttt{asyncio.TimeoutError} is caught, \texttt{execution\_had\_error} is set,
+and the delegation loop continues. Workers cannot run indefinitely.
+
+\textbf{Supervisor termination:} Each iteration of the \texttt{while turn\_count < max\_turns}
+loop in \texttt{process\_conversation} strictly increments \texttt{turn\_count}.
+After at most $D_S = 200$ iterations the loop exits.
+
+\textbf{Composition:} Since each worker terminates within $T_W$ and the supervisor
+executes at most $D_S$ worker delegations, total execution terminates within:
+
+\[ T_{total} \leq D_S \cdot T_W = 200 \times 1200\text{s} = 240{,}000\text{s} \]
+
+No infinite execution path exists.
+
+\[ \therefore \text{Termination is guaranteed within } D_S \cdot T_W \text{ seconds.} \]
+
+\subsection*{Known Failure Mode}
+
+When $d = D_S$, \texttt{process\_conversation} yields:
+
+\begin{verbatim}
+{"type": "error", "content": "Maximum conversation turns exceeded"}
+\end{verbatim}
+
+and stamps \texttt{failed\_at}. There is no re-planning, no escalation,
+and no partial synthesis. The system terminates without success and does not
+signal recovery. This is the primary open gap. See \textit{Liveness Gap Analysis}.
+
+\qed

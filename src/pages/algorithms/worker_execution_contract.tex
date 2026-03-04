@@ -1,0 +1,19 @@
+\section{Worker Execution Contract (WEC)}
+
+\subsection*{Mandatory Ordering}
+
+\begin{enumerate}
+    \item read\_scratchpad() \quad \textbf{AND} \quad first\_research\_tool()
+    \item append\_scratchpad(🔄 PENDING)
+    \item perform\_research\_sequence()
+    \item append\_scratchpad(✅/❓/⚠️ result)
+    \item one\_line\_confirmation()
+\end{enumerate}
+
+\subsection*{Hard Constraints}
+
+\begin{itemize}
+    \item No text before append\_scratchpad
+    \item No reasoning-only completion
+    \item No memory-only answer
+\end{itemize}

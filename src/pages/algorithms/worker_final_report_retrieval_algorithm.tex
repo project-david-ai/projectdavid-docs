@@ -1,0 +1,52 @@
+\section{Worker Final Report Retrieval Algorithm (WFRRA)}
+
+\subsection*{Problem}
+
+Worker run reaches terminal state before its final message is
+persisted to thread storage.
+
+\subsection*{Strategy}
+
+Retry retrieval with bounded attempts.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+
+\item For $i = 1 \dots N$ attempts:
+
+\begin{enumerate}
+    \item Fetch messages from thread $T_w$
+    \item Iterate newest → oldest
+    \item Select first message satisfying:
+    \[
+    role = assistant
+    \land tool\_calls = \varnothing
+    \land content \neq \emptyset
+    \]
+    \item Exclude JSON array tool-call structures
+    \item If found → return content
+\end{enumerate}
+
+\item If none found after $N$ attempts:
+\[
+return\ None
+\]
+
+\end{enumerate}
+
+\subsection*{Complexity}
+
+\[
+O(N \cdot M)
+\]
+
+Where:
+\begin{itemize}
+    \item $N$ = max attempts
+    \item $M$ = message count
+\end{itemize}
+
+\subsection*{Guarantee}
+
+Resolves write-after-complete race condition.

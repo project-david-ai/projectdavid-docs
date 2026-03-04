@@ -1,0 +1,53 @@
+\section{Role Resolution Algorithm (RRA)}
+
+\subsection*{Problem}
+
+Given a configuration vector of role flags:
+
+\[
+F = (f_e, f_d, f_r, f_j)
+\]
+
+Where:
+
+\begin{itemize}
+    \item $f_e$ = is\_engineer
+    \item $f_d$ = deep\_research
+    \item $f_r$ = research\_worker
+    \item $f_j$ = junior\_engineer
+\end{itemize}
+
+Determine exactly one active role according to a strict precedence ordering.
+
+\subsection*{Precedence Ordering}
+
+\[
+Engineer > DeepResearch > ResearchWorker > JuniorEngineer > Standard
+\]
+
+\subsection*{Algorithm}
+
+\[
+\textbf{if } f_e = 1 \rightarrow role = Engineer
+\]
+\[
+\textbf{else if } f_d = 1 \rightarrow role = DeepResearchSupervisor
+\]
+\[
+\textbf{else if } f_r = 1 \rightarrow role = ResearchWorker
+\]
+\[
+\textbf{else if } f_j = 1 \rightarrow role = JuniorEngineer
+\]
+\[
+\textbf{else } role = StandardAssistant
+\]
+
+\subsection*{Properties}
+
+\begin{itemize}
+    \item Deterministic
+    \item Total ordering
+    \item Mutual exclusivity enforced
+    \item $O(1)$ time complexity
+\end{itemize}

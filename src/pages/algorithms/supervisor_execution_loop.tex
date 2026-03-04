@@ -1,0 +1,26 @@
+\section{Supervisor Execution Loop (SEL)}
+
+\begin{enumerate}
+
+\item update\_scratchpad(📌 STRATEGY)
+
+\item delegate\_research\_task()
+
+\item Upon worker return:
+\[
+read\_scratchpad()
+\]
+
+\item Evaluate:
+
+\begin{itemize}
+    \item If ❓ or ⚠️ exist → redelegate
+    \item If all required fields = ✅ → synthesize
+\end{itemize}
+
+\item Final Synthesis:
+\[
+generate\_final\_response()
+\]
+
+\end{enumerate}

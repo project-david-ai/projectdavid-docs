@@ -1,0 +1,121 @@
+---
+title: Liveness Gap Analysis
+category: algorithms
+slug: liveness-gap-analysis
+nav_order: 5
+status: current
+---
+
+\section{Liveness Gap Analysis}
+
+\subsection*{Context}
+
+This document maps each condition in the Retry Policy Invariant ($RPI$) to
+its implementation status. It supersedes the prior gap analysis, which
+incorrectly classified $\Pi_2$ as unimplemented.
+
+The gap is \textbf{narrower than previously stated}. The primary open gap
+is $\Pi_4$ at the supervisor boundary.
+
+\subsection*{What Is Currently Established}
+
+\begin{itemize}
+  \item \textbf{Deadlock Freedom} ✅ — scratchpad semantics, no locks held
+  \item \textbf{Bounded Termination} ✅ — \texttt{max\_turns=200}, \texttt{\_WORKER\_RUN\_TIMEOUT=1200}
+  \item \textbf{Probabilistic Convergence} ✅ — under independence assumption
+  \item \textbf{$\Pi_2$ Worker Liveness} ✅ — \texttt{\_wait\_for\_run\_completion} with \texttt{asyncio.TimeoutError}
+  \item \textbf{$WF_{\text{vars}}(WorkerCompletes)$} ✅ — sound, backed by timeout mechanism
+\end{itemize}
+
+\subsection*{$\Pi_1$ — Supervisor Persistence (Soft)}
+
+The \texttt{while turn\_count < max\_turns} loop in \texttt{process\_conversation}
+provides a structural retry container. If the LLM emits a tool call, the loop
+re-enters delegation. This is reinforced by \texttt{L4\_EXECUTION\_LOOP} instructions
+mandating re-delegation on unverified scratchpad entries.
+
+However, $\Pi_1$ is \textbf{instruction-dependent, not algorithmically hard}.
+A model that decides to synthesize prematurely — outputting a terminal text reply
+rather than a tool call — breaks persistence silently. The loop exits cleanly
+because \texttt{get\_function\_call\_state()} returns empty, which is an
+indistinguishable success signal.
+
+\textbf{Status:} ⚠️ Soft — structurally present, behaviourally contingent.
+
+\subsection*{$\Pi_2$ — Worker Liveness (Implemented)}
+
+\texttt{\_WORKER\_RUN\_TIMEOUT = 1200} in \texttt{DelegationMixin} is the
+concrete mechanism. \texttt{\_wait\_for\_run\_completion} raises
+\texttt{asyncio.TimeoutError} on expiry. This is caught in
+\texttt{handle\_delegate\_research\_task}:
+
+\begin{verbatim}
+except asyncio.TimeoutError:
+    execution_had_error = True
+    final_run_status = "timed_out"
+\end{verbatim}
+
+The error is submitted as tool output and the supervisor loop continues.
+Workers cannot run indefinitely. The fairness annotation $WF_{\text{vars}}(WorkerCompletes)$
+in the TLA+ spec is sound against this mechanism.
+
+\textbf{Status:} ✅ Implemented.
+
+\subsection*{$\Pi_3$ — Fair Scheduling (Infrastructure-Dependent)}
+
+Worker runs are created via \texttt{create\_ephemeral\_run} and polled at
+\texttt{\_WORKER\_POLL\_INTERVAL = 2.0s}. Whether pending runs are selected
+fairly depends on the task queue infrastructure (Celery or equivalent)
+that is not visible in this codebase.
+
+\textbf{Status:} ⚠️ Infrastructure-dependent — unverified at this layer.
+
+\subsection*{$\Pi_4$ — Recovery at Supervisor Boundary (Missing)}
+
+This is the primary open gap. When \texttt{turn\_count} reaches \texttt{max\_turns=200}
+in \texttt{process\_conversation}, the current behaviour is:
+
+\begin{verbatim}
+yield json.dumps({
+    "type": "error",
+    "content": "Maximum conversation turns exceeded"
+})
+\end{verbatim}
+
+followed by \texttt{failed\_at} stamp and exit. There is no:
+
+\begin{itemize}
+  \item Re-planning with reduced scope
+  \item Escalation to a human or higher-level supervisor
+  \item Partial synthesis with explicitly declared uncertainty
+  \item Any signal to the caller that recovery is possible
+\end{itemize}
+
+Note: at the \textbf{worker level}, partial $\Pi_4$ exists — a timed-out worker
+submits an error as tool output and the supervisor may choose to re-delegate.
+But the supervisor itself has no equivalent when it hits its own bound.
+
+\textbf{Status:} ❌ Not implemented at supervisor boundary.
+
+\subsection*{Correlated Failure Risk}
+
+\texttt{get\_delegated\_model()} returns the same model for all workers.
+If the model fails consistently on a task type, $p$ is not stationary across
+delegations. The $P(\text{success by } n) = 1 - (1-p)^n$ bound is optimistic
+under correlated failure. No mitigation currently exists.
+
+\textbf{Status:} ❌ Unmitigated.
+
+\subsection*{Revised Gap Summary}
+
+\begin{itemize}
+  \item $\Pi_1$: structurally present, behaviourally soft ⚠️
+  \item $\Pi_2$: implemented ✅
+  \item $\Pi_3$: infrastructure-dependent ⚠️
+  \item $\Pi_4$: missing at supervisor boundary ❌
+  \item Correlated failure: unmitigated ❌
+\end{itemize}
+
+The system is closer to live than the prior analysis stated.
+The one hard gap is $\Pi_4$: the supervisor can exhaust its turn budget,
+produce nothing, and stop cleanly without any recovery signal.

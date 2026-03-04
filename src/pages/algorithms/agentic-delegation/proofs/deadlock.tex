@@ -1,0 +1,76 @@
+---
+title: Deadlock Freedom
+category: algorithms
+slug: deadlock-freedom
+nav_order: 2
+status: current
+---
+
+\section{Deadlock Freedom}
+
+\subsection*{System Model}
+
+Let:
+
+\[ \mathcal{P} = \{ S, W_1, \dots, W_k \} \]
+
+be the set of processes consisting of one Supervisor $S$ and $k$ ephemeral Workers.
+
+In the implementation, $S$ corresponds to the \texttt{QwenBaseWorker.process\_conversation}
+loop and each $W_i$ is a spawned ephemeral assistant run managed by \texttt{DelegationMixin}.
+
+Let:
+
+\[ \mathcal{R} = \{ C \} \]
+
+where $C$ is the shared scratchpad channel, implemented as an append-only log
+accessible via \texttt{read\_scratchpad} and \texttt{append\_scratchpad}.
+
+\subsection*{Resource Semantics}
+
+The scratchpad $C$ satisfies:
+
+\begin{itemize}
+  \item Append-only writes — workers call \texttt{append\_scratchpad}, never overwrite
+  \item Atomic write operation — one entry per tool call
+  \item Non-blocking read access — \texttt{read\_scratchpad} holds no lock
+  \item No lock retention — no process holds $C$ across operations
+\end{itemize}
+
+\subsection*{Wait-For Graph}
+
+Define the wait-for graph:
+
+\[ G = (\mathcal{P}, E) \]
+
+where an edge $P_i \rightarrow P_j$ exists iff $P_i$ waits on a resource
+currently held by $P_j$.
+
+Workers:
+
+\begin{itemize}
+  \item Do not wait on other workers
+  \item Do not hold $C$ — they append and release atomically
+\end{itemize}
+
+Supervisor:
+
+\begin{itemize}
+  \item Does not hold $C$ — it reads and updates via discrete tool calls
+  \item Waits on worker run completion via \texttt{\_wait\_for\_run\_completion},
+        but this is a time-bounded wait (timeout = 1200s), not a resource hold
+\end{itemize}
+
+Therefore:
+
+\[ E = \emptyset \]
+
+\subsection*{Theorem}
+
+Deadlock requires a directed cycle in $G$.
+
+Since $E = \emptyset$, the graph is acyclic.
+
+\[ \therefore \text{Deadlock is impossible.} \]
+
+\qed

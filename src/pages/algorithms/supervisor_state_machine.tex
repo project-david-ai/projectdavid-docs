@@ -1,0 +1,11 @@
+\section{Supervisor State Machine}
+
+Idle → StrategyUpdate
+StrategyUpdate → Delegating
+Delegating → AwaitingWorker
+AwaitingWorker → Evaluating
+Evaluating → Delegating \quad (if incomplete)
+Evaluating → Synthesizing \quad (if complete)
+Synthesizing → Terminated
+
+

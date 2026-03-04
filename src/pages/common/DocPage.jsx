@@ -3,9 +3,10 @@
 import { useParams } from 'react-router-dom';
 import { pages } from '../../lib/docs.js';
 
-import MarkdownPage          from '../../components/MarkdownPage/MarkdownPage.jsx';
-import ApiReferencePage      from './ApiReferencePage.jsx';
-import OpenApiReferencePage  from './OpenApiReferencePage.jsx';
+import MarkdownPage         from '../../components/MarkdownPage/MarkdownPage.jsx';
+import LatexPage            from '../../components/LatexPage/LatexPage.jsx';
+import ApiReferencePage     from './ApiReferencePage.jsx';
+import OpenApiReferencePage from './OpenApiReferencePage.jsx';
 
 export default function DocPage() {
   const { slug } = useParams();
@@ -26,6 +27,16 @@ export default function DocPage() {
 
   if (pageData.frontmatter?.layout === 'api') {
     return <ApiReferencePage pageData={pageData} />;
+  }
+
+  const isLatex = pageData.path?.endsWith('.tex') || pageData.path?.endsWith('.tla');
+
+  if (isLatex) {
+    return (
+      <LatexPage
+        content={pageData.content}
+      />
+    );
   }
 
   return (

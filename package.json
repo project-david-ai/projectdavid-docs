@@ -20,6 +20,7 @@
     "flubber": "^0.4.2",
     "framer-motion": "^12.18.1",
     "highlight.js": "^11.11.1",
+    "katex": "^0.16.33",
     "lucide-react": "^0.519.0",
     "mermaid": "^11.12.3",
     "react": "^19.1.0",

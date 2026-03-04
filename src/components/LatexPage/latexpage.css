@@ -1,0 +1,103 @@
+/* src/components/LatexPage/latexpage.css */
+
+.latex-body {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 2rem 2.5rem 4rem;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #1a1a1a;
+}
+
+/* ── Headings ── */
+.latex-body h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 1.25rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid #e0e0e0;
+  letter-spacing: -0.02em;
+}
+
+.latex-body h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 1.75rem 0 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #333;
+}
+
+/* ── Paragraphs ── */
+.latex-body p {
+  margin: 0 0 0.75rem;
+}
+
+/* ── Math blocks ── */
+.math-block {
+  margin: 1rem 0;
+  overflow-x: auto;
+  text-align: center;
+}
+
+/* ── Lists ── */
+.latex-body ul,
+.latex-body ol {
+  margin: 0.5rem 0 1rem 1.5rem;
+  padding: 0;
+}
+
+.latex-body li {
+  margin-bottom: 0.3rem;
+  line-height: 1.6;
+}
+
+/* ── Verbatim / code blocks ── */
+.latex-body pre {
+  background: #f6f8fa;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0 1.25rem;
+  overflow-x: auto;
+}
+
+.latex-body pre code {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  font-size: 0.825rem;
+  line-height: 1.6;
+  color: #24292e;
+  background: none;
+  border-radius: 0;
+  padding: 0;
+  white-space: pre;
+}
+
+/* ── Inline code ── */
+.latex-body code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.875em;
+  background: #f4f4f4;
+  border-radius: 3px;
+  padding: 0.1em 0.35em;
+}
+
+/* ── QED tombstone ── */
+.latex-body .qed {
+  display: block;
+  text-align: right;
+  font-size: 1.1rem;
+  margin-top: 0.75rem;
+  color: #444;
+}
+
+/* ── KaTeX error fallback ── */
+.katex-error {
+  color: #c0392b;
+  font-family: monospace;
+  font-size: 0.85em;
+  background: #fdf0ef;
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}

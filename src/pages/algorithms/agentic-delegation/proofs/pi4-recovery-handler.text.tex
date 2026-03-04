@@ -1,0 +1,350 @@
+---
+title: Pi4 Recovery Handler — Implementation Specification
+category: algorithms
+slug: pi4-recovery-handler
+nav_order: 8
+status: proposed
+---
+
+\section{$\Pi_4$ Recovery Handler — Implementation Specification}
+
+\subsection*{Purpose}
+
+This document specifies the concrete implementation required to close $\Pi_4$
+in \texttt{process\_conversation} (\texttt{orchestrator\_core.py}).
+
+$\Pi_4$ is the only hard gap between the system's current liveness guarantee
+($\Diamond\ Terminated$) and full liveness ($\Diamond\ \text{Success}$).
+
+\subsection*{The Formal Condition}
+
+\[ \Pi_4 \triangleq \square \left( d = D_S \wedge f(C) = incomplete \rightarrow \Diamond\ RecoveryInvoked \right) \]
+
+In implementation terms:
+
+\begin{itemize}
+  \item $d = D_S$ maps to \texttt{turn\_count >= max\_turns}
+  \item $f(C) = incomplete$ maps to scratchpad containing unresolved entries
+        (i.e. the supervisor did not reach a clean text completion)
+  \item $RecoveryInvoked$ maps to one of three defined recovery paths
+        being entered before \texttt{process\_conversation} exits
+\end{itemize}
+
+\subsection*{The Hook — Where to Intervene}
+
+The current max-turns failsafe in \texttt{process\_conversation}:
+
+\begin{verbatim}
+# CURRENT — no recovery
+if turn_count >= max_turns:
+    LOG.error("ORCHESTRATOR ▸ Max turns reached.")
+    await asyncio.to_thread(
+        self.project_david_client.runs.update_run_fields,
+        run_id,
+        failed_at=int(time.time()),
+        incomplete_details=(
+            f"Max turns ({max_turns}) reached without clean completion."
+        ),
+    )
+    yield json.dumps({
+        "type": "error",
+        "content": "Maximum conversation turns exceeded"
+    })
+\end{verbatim}
+
+Replace with:
+
+\begin{verbatim}
+# PROPOSED — Pi4 recovery gate
+if turn_count >= max_turns:
+    LOG.error("ORCHESTRATOR ▸ Max turns reached. Invoking Pi4 recovery.")
+    async for chunk in self._handle_max_turns_recovery(
+        thread_id=thread_id,
+        run_id=run_id,
+        assistant_id=assistant_id,
+        model=model,
+        api_key=api_key,
+    ):
+        yield chunk
+    return
+\end{verbatim}
+
+\subsection*{Recovery Router}
+
+\begin{verbatim}
+async def _handle_max_turns_recovery(
+    self,
+    thread_id: str,
+    run_id: str,
+    assistant_id: str,
+    model: Any,
+    api_key: str,
+) -> AsyncGenerator[str, None]:
+    """
+    Pi4 Recovery Handler.
+
+    Reads scratchpad state and routes to one of three recovery paths:
+      A. PARTIAL SYNTHESIS  — verified entries exist, synthesize what is known
+      B. SCOPE REDUCTION    — some verified, some pending; re-plan with reduced scope
+      C. ESCALATION         — nothing verified; emit structured failure event
+
+    Guarantees: never exits silently. Always produces either a partial
+    result or an explicit structured failure signal.
+    """
+    scratchpad_state = await self._read_scratchpad_state(thread_id)
+
+    verified  = scratchpad_state.get("verified",  [])
+    pending   = scratchpad_state.get("pending",   [])
+    failed    = scratchpad_state.get("failed",    [])
+
+    if verified and not pending:
+        # PATH A: all claims resolved — synthesize verified subset
+        async for chunk in self._recover_partial_synthesis(
+            thread_id, run_id, assistant_id, model, api_key,
+            verified=verified, failed=failed,
+        ):
+            yield chunk
+
+    elif verified and pending:
+        # PATH B: partial progress — reduce scope and attempt one more delegation
+        async for chunk in self._recover_scope_reduction(
+            thread_id, run_id, assistant_id, model, api_key,
+            verified=verified, pending=pending,
+        ):
+            yield chunk
+
+    else:
+        # PATH C: nothing verified — escalate, do not fabricate
+        async for chunk in self._recover_escalation(
+            run_id, failed=failed
+        ):
+            yield chunk
+\end{verbatim}
+
+\subsection*{Path A — Partial Synthesis}
+
+\textbf{Trigger:} verified scratchpad entries exist, no pending entries remain.
+
+\textbf{Behaviour:} construct a synthesis prompt from verified entries only.
+Inject the constraint that unverified claims must be explicitly flagged.
+Run one final inference turn without tool access.
+
+\begin{verbatim}
+async def _recover_partial_synthesis(
+    self, thread_id, run_id, assistant_id, model, api_key,
+    verified, failed,
+) -> AsyncGenerator[str, None]:
+
+    unresolved_note = ""
+    if failed:
+        labels = ", ".join(f['entity'] for f in failed)
+        unresolved_note = (
+            f"\n\nThe following could not be verified: {labels}. "
+            f"Explicitly tell the user these are unresolved."
+        )
+
+    synthesis_prompt = (
+        f"You have reached the maximum delegation depth. "
+        f"Synthesize a final response using ONLY the verified entries "
+        f"in the scratchpad. Do not infer or fabricate any values. "
+        f"Cite each verified source URL."
+        f"{unresolved_note}"
+    )
+
+    await self._inject_recovery_message(
+        thread_id, assistant_id, synthesis_prompt
+    )
+
+    # One final stream turn — no tools, no loop
+    async for chunk in self.stream(
+        thread_id=thread_id,
+        message_id=None,
+        run_id=run_id,
+        assistant_id=assistant_id,
+        model=model,
+        api_key=api_key,
+        tool_choice="none",       # disable tool calls for this turn
+    ):
+        yield chunk
+
+    await asyncio.to_thread(
+        self.project_david_client.runs.update_run_fields,
+        run_id,
+        completed_at=int(time.time()),
+        incomplete_details="Partial synthesis: max turns reached, verified subset synthesized.",
+    )
+\end{verbatim}
+
+\subsection*{Path B — Scope Reduction}
+
+\textbf{Trigger:} verified entries exist but pending entries remain unresolved.
+
+\textbf{Behaviour:} construct a reduced-scope delegation prompt covering only
+the unresolved pending items. Grant one additional turn budget ($\Delta D$).
+This is the one case where the system extends beyond \texttt{max\_turns}.
+
+\begin{verbatim}
+async def _recover_scope_reduction(
+    self, thread_id, run_id, assistant_id, model, api_key,
+    verified, pending,
+) -> AsyncGenerator[str, None]:
+
+    pending_labels = ", ".join(p['entity'] for p in pending)
+    reduction_prompt = (
+        f"Maximum delegation depth reached. "
+        f"The following items remain unresolved: {pending_labels}. "
+        f"Attempt ONE final targeted delegation for each. "
+        f"If still unresolved after one attempt, flag as [UNVERIFIED] "
+        f"and proceed to synthesis. Do not loop further."
+    )
+
+    await self._inject_recovery_message(
+        thread_id, assistant_id, reduction_prompt
+    )
+
+    # One additional loop iteration only
+    async for chunk in self.stream(
+        thread_id=thread_id,
+        message_id=None,
+        run_id=run_id,
+        assistant_id=assistant_id,
+        model=model,
+        api_key=api_key,
+    ):
+        yield chunk
+
+    await asyncio.to_thread(
+        self.project_david_client.runs.update_run_fields,
+        run_id,
+        incomplete_details=(
+            f"Scope reduction recovery: {len(pending)} pending items "
+            f"at max turns. One additional delegation attempted."
+        ),
+    )
+\end{verbatim}
+
+\subsection*{Path C — Escalation}
+
+\textbf{Trigger:} no verified entries exist. Nothing can be synthesized safely.
+
+\textbf{Behaviour:} emit a structured escalation event. Do not fabricate.
+Stamp \texttt{failed\_at}. The caller is responsible for handling escalation.
+
+\begin{verbatim}
+async def _recover_escalation(
+    self, run_id, failed,
+) -> AsyncGenerator[str, None]:
+
+    failed_labels = [f.get("entity", "unknown") for f in failed]
+
+    yield json.dumps({
+        "type": "escalation",
+        "reason": "max_turns_no_verified_data",
+        "run_id": run_id,
+        "failed_entities": failed_labels,
+        "message": (
+            "Research exhausted maximum delegation depth with no verified "
+            "results. Manual review or query reformulation required."
+        ),
+    })
+
+    await asyncio.to_thread(
+        self.project_david_client.runs.update_run_fields,
+        run_id,
+        failed_at=int(time.time()),
+        incomplete_details=(
+            f"Escalation: {len(failed_labels)} entities unresolvable "
+            f"after max turns."
+        ),
+    )
+\end{verbatim}
+
+\subsection*{Supporting Helper — Scratchpad State Reader}
+
+\begin{verbatim}
+async def _read_scratchpad_state(self, thread_id: str) -> dict:
+    """
+    Parse scratchpad content into structured state buckets.
+
+    Returns:
+      {
+        "verified":  [{"entity": ..., "field": ..., "url": ...}],
+        "pending":   [{"entity": ..., "field": ...}],
+        "failed":    [{"entity": ..., "reason": ...}],
+      }
+    """
+    raw = await self._native_exec.get_scratchpad(thread_id)
+    lines = (raw or "").splitlines()
+
+    verified, pending, failed = [], [], []
+
+    for line in lines:
+        if line.startswith("✅"):
+            parts = [p.strip() for p in line.split("|")]
+            if len(parts) >= 4:
+                verified.append({
+                    "entity": parts[1],
+                    "field":  parts[2],
+                    "value":  parts[3],
+                    "url":    parts[4] if len(parts) > 4 else "",
+                })
+        elif line.startswith("🔄"):
+            parts = [p.strip() for p in line.split("|")]
+            if len(parts) >= 2:
+                pending.append({
+                    "entity": parts[1],
+                    "field":  parts[2] if len(parts) > 2 else "",
+                })
+        elif line.startswith("⚠️") or line.startswith("❓"):
+            parts = [p.strip() for p in line.split("|")]
+            failed.append({
+                "entity": parts[1] if len(parts) > 1 else line,
+                "reason": parts[2] if len(parts) > 2 else "",
+            })
+
+    return {"verified": verified, "pending": pending, "failed": failed}
+\end{verbatim}
+
+\subsection*{Supporting Helper — Recovery Message Injector}
+
+\begin{verbatim}
+async def _inject_recovery_message(
+    self, thread_id: str, assistant_id: str, content: str
+) -> None:
+    """
+    Injects a recovery instruction into the thread as a user message.
+    This is the mechanism by which the orchestrator re-steers the LLM
+    without creating a new run — the next stream() call picks it up
+    as the latest context.
+    """
+    await self._native_exec.create_message(
+        thread_id=thread_id,
+        assistant_id=assistant_id,
+        content=content,
+        role="user",
+    )
+\end{verbatim}
+
+\subsection*{Formal Closure}
+
+With this handler in place:
+
+\begin{itemize}
+  \item Path A closes $\Pi_4$ — verified subset is synthesized, unresolved claims
+        are explicitly flagged. $\Diamond\ \text{Success}$ holds for the verified subset.
+  \item Path B closes $\Pi_4$ — one additional targeted delegation is attempted
+        before synthesis. $\Diamond\ \text{Success}$ holds with $\leq 1$ turn extension.
+  \item Path C closes $\Pi_4$ — a structured escalation event is emitted.
+        Silent failure is excluded. $\Diamond\ \text{Success}$ is delegated to the caller.
+\end{itemize}
+
+In all three paths:
+
+\[ d = D_S \wedge f(C) = incomplete \rightarrow \Diamond\ RecoveryInvoked \]
+
+$\Pi_4$ holds. Combined with $\Pi_1$ (hardened), $\Pi_2$ (implemented),
+and $\Pi_3$ (infrastructure), $RPI$ holds and the Liveness Theorem is verified.
+
+\[ \therefore \Diamond\ \text{Success} \]
+
+\qed

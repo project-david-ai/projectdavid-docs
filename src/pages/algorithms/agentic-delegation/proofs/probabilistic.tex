@@ -1,0 +1,44 @@
+---
+title: Probabilistic Convergence (Proof)
+category: algorithms
+slug: probabilistic-convergence-proof
+nav_order: 3
+---
+
+\section{Probabilistic Convergence}
+
+\subsection*{Assumptions}
+
+Each worker independently resolves a task correctly with probability:
+
+\[ p \in (0,1] \]
+
+\subsection*{Failure Probability After $n$ Delegations}
+
+\[ P(\text{no success after } n) = (1-p)^n \]
+
+\subsection*{Success Probability}
+
+\[ P(\text{success by } n) = 1 - (1-p)^n \]
+
+\subsection*{Expected Delegations Until Success}
+
+\[ \mathbb{E}[N] = \frac{1}{p} \]
+
+\subsection*{Bounded Delegation Case}
+
+With maximum depth $D$:
+
+\[ P(\text{success}) = 1 - (1-p)^D \]
+
+\subsection*{Convergence}
+
+As:
+
+\[ D \rightarrow \infty \]
+
+\[ P(\text{success}) \rightarrow 1 \]
+
+\[ \therefore \text{System converges with probability 1 as } D \to \infty. \]
+
+\qed

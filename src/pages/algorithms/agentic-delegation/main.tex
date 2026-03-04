@@ -1,0 +1,56 @@
+---
+title: Probabilistic Convergence
+category: algorithms
+slug: probabilistic-convergence
+nav_order: 1
+status: current
+---
+
+\section{Probabilistic Convergence}
+
+\subsection*{Assumptions}
+
+Each worker independently resolves a task correctly with probability:
+
+\[ p \in (0,1] \]
+
+Worker trials are assumed to be \textbf{mutually independent} and $p$ is assumed
+\textbf{stationary} across delegations.
+
+\textbf{Note on stationarity:} The current implementation routes all delegations
+through a single model via \texttt{get\_delegated\_model()}. If the model fails
+consistently on a task type, $p$ degrades across trials and the geometric series
+argument weakens. This is an unmitigated risk in the current stack.
+See \textit{Liveness Gap Analysis}.
+
+\subsection*{Failure Probability After $n$ Delegations}
+
+\[ P(\text{no success after } n) = (1-p)^n \]
+
+\subsection*{Success Probability}
+
+\[ P(\text{success by } n) = 1 - (1-p)^n \]
+
+\subsection*{Expected Delegations Until Success}
+
+\[ \mathbb{E}[N] = \frac{1}{p} \]
+
+\subsection*{Bounded Delegation Case}
+
+With maximum supervisor turn depth $D = 200$ (see \texttt{max\_turns} in
+\texttt{process\_conversation}):
+
+\[ P(\text{success}) = 1 - (1-p)^{200} \]
+
+Note: this bound is strictly less than 1 for any finite $D$.
+Termination without success is possible when $d = D$.
+
+\subsection*{Convergence}
+
+As $D \rightarrow \infty$:
+
+\[ P(\text{success}) \rightarrow 1 \]
+
+\[ \therefore \text{System converges with probability 1 under independent, stationary trials.} \]
+
+\qed

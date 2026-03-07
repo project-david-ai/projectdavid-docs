@@ -47,7 +47,7 @@ sync_stream.setup(
     assistant_id=assistant.id,
     message_id=message.id,
     run_id=run.id,
-    api_key="ollama"       # see note on API keys below
+   # see note on API keys below
 )
 
 try:
@@ -68,8 +68,7 @@ except Exception as e:
 
 ## API key
 
-Ollama is not a cloud-gated product so there's no real API key involved. You still need to pass *something* in the `api_key` field — use the string `"ollama"`. The platform uses this value to route your request to the correct backend, not to authenticate with a third-party service.
-
+Ollama is not a cloud-gated product so there's no real API key involved.
 ---
 
 ## Model string format

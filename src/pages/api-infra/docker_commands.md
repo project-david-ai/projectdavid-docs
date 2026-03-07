@@ -1,80 +1,88 @@
-#  Docker Commands Reference
+# Docker Commands Reference
 
-This document captures all supported Docker orchestration commands used in the `entities` system via `start.py`.
+This document captures all supported Docker orchestration commands used in the `entities` system via the `platform-api` CLI.
 
 ---
 
-##  General Startup
+## General Startup
 
-Use `start.py` to simplify container management:
 
-### Default Orchestration
+**Install the local package.**
 
 ```bash
-python start.py
+pip install -e .
 ```
 
-### Skip Orchestration Phase
+
+### Default Startup (build & up)
+
+
+
 
 ```bash
-python start.py --no-orchestrate
+platform-api docker-manager --mode both
+```
+
+### Bring Up Without Rebuilding
+
+```bash
+platform-api docker-manager --mode up
 ```
 
 ### Run with Ollama (Optional Local LLMs)
 
 ```bash
-python start.py --with-ollama
+platform-api docker-manager --mode up --with-ollama
 ```
 
 With GPU passthrough:
 
 ```bash
-python start.py --with-ollama --ollama-gpu
+platform-api docker-manager --mode up --with-ollama --ollama-gpu
 ```
 
 ---
 
-## 🔧 Docker Lifecycle Commands
+## Docker Lifecycle Commands
 
-| Action                                | Command |
-|---------------------------------------|---------|
-| **Bring up containers**               | `python start.py --mode up` |
-| **Build Docker images**               | `python start.py --mode build` |
-| **Build & bring up**                  | `python start.py --mode both` |
-| **No-cache build**                    | `python start.py --mode build --no-cache` |
-| **No-cache build & up**               | `python start.py --mode both --no-cache` |
-| **Clear volumes & restart**           | `python start.py --mode up --clear-volumes` |
-| **Stop containers**                   | `python start.py --down` |
-| **Stop & clear all data**             | `python start.py --down --clear-volumes` |
-| **Debug cache/docker health**         | `python start.py --debug-cache` |
+| Action                        | Command |
+|-------------------------------|---------|
+| **Bring up containers**       | `platform-api docker-manager --mode up` |
+| **Build Docker images**       | `platform-api docker-manager --mode build` |
+| **Build & bring up**          | `platform-api docker-manager --mode both` |
+| **No-cache build**            | `platform-api docker-manager --mode build --no-cache` |
+| **No-cache build & up**       | `platform-api docker-manager --mode both --no-cache` |
+| **Clear volumes & restart**   | `platform-api docker-manager --mode up --clear-volumes` |
+| **Stop containers**           | `platform-api docker-manager --down` |
+| **Stop & clear all data**     | `platform-api docker-manager --down --clear-volumes` |
+| **Debug cache/docker health** | `platform-api docker-manager --debug-cache` |
 
 ---
 
-##  Build Specific Services
+## Build Specific Services
 
-| Service                | Command |
-|------------------------|---------|
-| **Main API**           | `python start.py --mode build --services api` |
-| **Database (MySQL)**   | `python start.py --mode build --services db` |
-| **Vector DB (Qdrant)** | `python start.py --mode build --services qdrant` |
-| **Sandbox**            | `python start.py --mode build --services sandbox` |
-| **File Server (Samba)**| `python start.py --mode build --services samba` |
+| Service                 | Command |
+|-------------------------|---------|
+| **Main API**            | `platform-api docker-manager --mode build --services api` |
+| **Database (MySQL)**    | `platform-api docker-manager --mode build --services db` |
+| **Vector DB (Qdrant)**  | `platform-api docker-manager --mode build --services qdrant` |
+| **Sandbox**             | `platform-api docker-manager --mode build --services sandbox` |
+| **File Server (Samba)** | `platform-api docker-manager --mode build --services samba` |
 
+---
 
-##  logging
+## Logging
 
-| Action                                           | Command                                                                                         |
-|--------------------------------------------------|-------------------------------------------------------------------------------------------------|
-| View all logs (last 100 lines)                   | python start.py --mode logs --tail 100                                                          |
-| Follow logs for all services                     | python start.py --mode logs --follow                                                            |
-| Follow logs for specific services with timestamps| python start.py --mode logs --follow --timestamps --services fastapi_cosmic_catalyst db         |
-| View logs without service name prefix            | python start.py --mode logs --tail 200 --no-log-prefix                                          |
-| Save logs to file (using shell redirection)      | python start.py --mode logs --tail 1000 > output.log                                            |
-| Follow logs for a single service                 | python start.py --mode logs -f --services otel_collector                                        |
-| Save all logs to file                            | python start.py --mode logs > docker_logs.log                                                   |
-| Save last 1000 lines to file                     | python start.py --mode logs --tail 1000 > docker_logs.log                                       |
-| Save logs with timestamps to file                | python start.py --mode logs --timestamps > docker_logs.log                                      |
-| Save logs for specific services to file          | python start.py --mode logs --services fastapi_cosmic_catalyst otel_collector > docker_logs.log |
-| Append to existing file (use >>)                 | python start.py --mode logs --tail 500 >> docker_logs.log                                       |
-| Save all available logs with timestamps          | python start.py --mode logs --timestamps --tail all > docker_logs.log                           |
-
+| Action                                              | Command |
+|-----------------------------------------------------|---------|
+| View all logs (last 100 lines)                      | `platform-api docker-manager --mode logs --tail 100` |
+| Follow logs for all services                        | `platform-api docker-manager --mode logs --follow` |
+| Follow logs for specific services with timestamps   | `platform-api docker-manager --mode logs --follow --timestamps --services api db` |
+| View logs without service name prefix               | `platform-api docker-manager --mode logs --tail 200 --no-log-prefix` |
+| Save logs to file (shell redirection)               | `platform-api docker-manager --mode logs --tail 1000 > output.log` |
+| Follow logs for a single service                    | `platform-api docker-manager --mode logs --follow --services otel-collector` |
+| Save all logs to file                               | `platform-api docker-manager --mode logs > docker_logs.log` |
+| Save last 1000 lines to file                        | `platform-api docker-manager --mode logs --tail 1000 > docker_logs.log` |
+| Save logs with timestamps to file                   | `platform-api docker-manager --mode logs --timestamps > docker_logs.log` |
+| Save logs for specific services to file             | `platform-api docker-manager --mode logs --services api otel-collector > docker_logs.log` |
+| Append to existing file                             | `platform-api docker-manager --mode logs --tail 500 >> docker_logs.log` |

@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="projectdavid_docs" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="entities_cook_book11" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="entities_api" project-jdk-type="Python SDK" />
 </project>

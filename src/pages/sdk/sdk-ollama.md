@@ -9,7 +9,7 @@ nav_order: 7
 
 ## Overview
 
-The Project David Platform supports private local inference through [Ollama](https://ollama.com). No cloud API keys, no data leaving your machine — just point to Ollama in your model endpoint string when you build your inference object.
+The Project David Platform supports private local inference through [Ollama](https://ollama.com). No cloud API keys, no data leaving your machine — just point to Ollama in your model endpoint string.
 
 ---
 
@@ -20,7 +20,15 @@ Ensure the following environment variables are set:
 - `ENTITIES_API_KEY`: Your Entities API key.
 - `BASE_URL`: Base URL of your Entities API instance (default: `http://localhost:9000`).
 
-Ollama itself must be running and reachable from your platform instance. If you're running the platform in Docker, make sure Ollama is accessible at the hostname your stack expects (e.g. `http://ollama:11434`). If you haven't set up Ollama yet, the [Ollama quickstart](https://github.com/ollama/ollama/blob/main/README.md#quickstart) is the fastest way to get going.
+Ollama itself must be running and reachable from your platform instance. If you haven't set up Ollama yet, the [Ollama quickstart](https://github.com/ollama/ollama/blob/main/README.md#quickstart) is the fastest way to get going.
+
+---
+
+## Custom Remote Ollama Servers
+
+By default, the platform looks for Ollama at `http://localhost:11434` (or your configured `OLLAMA_BASE_URL` environment variable). 
+
+If your development machine is separate from your Ollama server, you can dynamically override the Ollama URL **per-request** by passing `ollama_base_url` into the stream setup's `meta_data`. 
 
 ---
 
@@ -42,23 +50,25 @@ client = Entity(
 
 sync_stream = client.synchronous_inference_stream
 sync_stream.setup(
-    user_id=user_id,
-    thread_id=thread.id,
-    assistant_id=assistant.id,
-    message_id=message.id,
-    run_id=run.id,
-   # see note on API keys below
+    thread_id="your_thread_id",
+    assistant_id="your_assistant_id",
+    message_id="your_message_id",
+    run_id="your_run_id",
+    meta_data={
+        "ollama_base_url": "http://192.168.1.150:11434"  # 👈 Route to a remote Ollama server dynamically
+    }
 )
 
 try:
     for chunk in sync_stream.stream_chunks(
-        model="ollama/qwen3:4b",  # use the ollama/ prefix in the model string
+        model="ollama/qwen3:4b",  # 👈 Use the ollama/ prefix
         timeout_per_chunk=60.0,
         suppress_fc=True,
     ):
         content = chunk.get("content", "")
         if content:
             print(content, end="", flush=True)
+            
     print("\n--- End of Stream ---")
 except Exception as e:
     print(f"Stream Error: {e}")
@@ -66,24 +76,22 @@ except Exception as e:
 
 ---
 
-## API key
-
-Ollama is not a cloud-gated product so there's no real API key involved.
----
-
 ## Model string format
 
 Prefix the Ollama model name with `ollama/` in your `stream_chunks` call:
 
-```
+```text
 ollama/qwen3:4b
 ollama/llama3:8b
 ollama/mistral:latest
 ```
 
-Any model you have pulled locally via `ollama pull <model>` can be used here. The full list of available models is at [ollama.com/library](https://ollama.com/library).
+Any model you have pulled locally via `ollama pull <model>` can be used here. 
 
 ---
+
+
+
 
 ## Thinking models
 

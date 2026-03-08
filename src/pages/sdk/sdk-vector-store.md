@@ -14,6 +14,11 @@ A high-performance vector storage and retrieval system designed for AI/ML workfl
 
 Associated methods can be used to extend the memory and contextual recall of AI assistants beyond the context window, allowing for Retrieval Augmented Generations (RAG).  
 
+Client-side document chunking and vectorization requires the `embeddings` extra. Without it, local file processing will fail.
+
+```bash
+pip install "projectdavid[embeddings]"
+```
 
 
 # File Search — Vector Store Pipeline

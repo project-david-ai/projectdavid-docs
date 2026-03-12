@@ -2,7 +2,7 @@
 title: Function Calls
 category: sdk
 slug: function-calling-and-tool-execution
-nav_order: 11
+nav_order: 12
 ---
 
 

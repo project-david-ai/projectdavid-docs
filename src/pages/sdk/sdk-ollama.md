@@ -2,7 +2,7 @@
 title: Ollama
 category: sdk
 slug: sdk-ollama
-nav_order: 7
+nav_order: 8
 ---
 
 # Ollama

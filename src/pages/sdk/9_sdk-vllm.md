@@ -29,19 +29,9 @@ Ensure the following environment variables are set:
 
 ### Docker (recommended)
 
-vLLM does not install natively on Windows. The official Docker image is the fastest path on any platform.
+A vLLM docker container is deployed as part of the platform stack. 
 
-```bash
-docker run --runtime nvidia --gpus all \
-  -p 8001:8000 \
-  -v ~/.cache/huggingface:/root/.cache/huggingface \
-  -e HF_TOKEN=your_hf_token \
-  vllm/vllm-openai:latest \
-  --model Qwen/Qwen2.5-3B-Instruct \
-  --dtype float16 \
-  --max-model-len 8192 \
-  --gpu-memory-utilization 0.85
-```
+
 
 > **GPU memory note:** `--gpu-memory-utilization 0.85` is recommended if your GPU is also driving a display (e.g. a laptop). Adjust downward if you see out-of-memory errors on startup.
 

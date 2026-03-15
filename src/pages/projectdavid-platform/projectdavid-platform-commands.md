@@ -34,12 +34,34 @@ pip install -e .
 pdavid --mode up
 ```
 
-### Start with GPU services (vLLM)
+### Start with Ollama only
 
 Requires an Nvidia GPU and `nvidia-container-toolkit` installed on the host.
 
 ```bash
+pdavid --mode up --ollama
+```
+
+### Start with vLLM only
+
+Requires an Nvidia GPU and `nvidia-container-toolkit` installed on the host.
+
+```bash
+pdavid --mode up --vllm
+```
+
+### Start with both Ollama and vLLM
+
+```bash
 pdavid --mode up --gpu
+```
+
+### Pull latest images before starting
+
+Use this after running `pip install --upgrade projectdavid-platform` to apply the update.
+
+```bash
+pdavid --mode up --pull
 ```
 
 ### Force recreate all containers
@@ -67,7 +89,10 @@ pdavid --mode up --down --clear-volumes
 | Action | Command |
 |---|---|
 | Bring up containers | `pdavid --mode up` |
-| Bring up with GPU services | `pdavid --mode up --gpu` |
+| Bring up with Ollama | `pdavid --mode up --ollama` |
+| Bring up with vLLM | `pdavid --mode up --vllm` |
+| Bring up with both GPU services | `pdavid --mode up --gpu` |
+| Pull latest images and bring up | `pdavid --mode up --pull` |
 | Build images only | `pdavid --mode build` |
 | Build then bring up | `pdavid --mode both` |
 | No-cache build | `pdavid --mode build --no-cache` |
@@ -97,8 +122,8 @@ pdavid --mode build --services api
 Exclude services from startup:
 
 ```bash
-pdavid --mode up --exclude ollama
-pdavid --mode up --exclude ollama --exclude jaeger
+pdavid --mode up --exclude samba
+pdavid --mode up --exclude samba --exclude jaeger
 ```
 
 ---
@@ -117,9 +142,9 @@ pdavid --mode up --exclude ollama --exclude jaeger
 | `otel-collector` | OpenTelemetry telemetry collection |
 | `jaeger` | Distributed tracing UI |
 | `samba` | File sharing for uploaded documents |
-| `ollama` | Local LLM inference |
 | `nginx` | Reverse proxy — single public entry point on port 80 |
-| `vllm` | GPU inference (opt-in, requires `--gpu`) |
+| `ollama` | Local LLM inference (opt-in, requires `--ollama` or `--gpu`) |
+| `vllm` | GPU inference (opt-in, requires `--vllm` or `--gpu`) |
 
 ---
 
@@ -197,7 +222,9 @@ pdavid --nuke
 
 ```bash
 pip install --upgrade projectdavid-platform
-pdavid --mode up --force-recreate
+pdavid --mode up --pull
 ```
 
-The orchestrator writes `PDAVID_VERSION` to `.env` automatically on each run. The compose file uses this to pin owned image tags (`api`, `sandbox`) to the installed package version. Running `--force-recreate` after an upgrade pulls the new images and recreates the containers.
+After upgrading the package, `pdavid` will print a notice on the next run informing you that new images are available. Running `--pull` fetches the latest container images and applies the update. Your data and secrets are not affected.
+
+The orchestrator writes `PDAVID_VERSION` to `.env` automatically on each run. The compose file uses this to pin owned image tags (`api`, `sandbox`) to the installed package version.

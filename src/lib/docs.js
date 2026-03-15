@@ -7,6 +7,7 @@
 
 const categoryDisplayNames = {
   'overview'      : 'OVERVIEW',
+  'projectdavid-platform': 'PROJECT DAVID PLATFORM',
   'sdk'           : 'SDK',
   'endpoints'     : 'API ENDPOINTS',
   'providers'     : 'PROVIDERS',
@@ -17,12 +18,13 @@ const categoryDisplayNames = {
 
 const categoryOrder = {
   'overview'      : 1,
-  'sdk'           : 2,
-  'endpoints'     : 3,
-  'providers'     : 4,
-  'infrastructure': 5,
-  'architecture'  : 6,
-  'algorithms'    : 7,
+  'projectdavid-platform' : 2,
+  'sdk'           : 3,
+  'endpoints'     : 4,
+  'providers'     : 5,
+  'infrastructure': 6,
+  'architecture'  : 7,
+  'algorithms'    : 8,
 };
 
 /* ---------- tiny front-matter parser (keeps bundle slim) ---------- */

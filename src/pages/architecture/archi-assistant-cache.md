@@ -1,13 +1,50 @@
+# Project David Platform
+
+[![Docker Pulls](https://img.shields.io/docker/pulls/thanosprime/entities-api-api?label=API%20Pulls&logo=docker&style=flat-square)](https://hub.docker.com/r/thanosprime/entities-api-api)
+[![CI](https://github.com/project-david-ai/platform-docker/actions/workflows/ci.yml/badge.svg)](https://github.com/project-david-ai/platform-docker/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/projectdavid-platform?style=flat-square)](https://pypi.org/project/projectdavid-platform/)
+[![License: PolyForm Noncommercial](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue.svg)](https://polyformproject.org/licenses/noncommercial/1.0.0/)
+
+Deployment orchestrator for the Project David / Entities platform. Provides a single command to bring up the complete infrastructure stack, including database, vector store, search, observability, secure code execution, and optional GPU inference services.
+
 ---
-title: Assistant Cache
-category: architecture
-slug: archi-assistant-cache
-nav_order: 2
+
+## Installation
+
+```bash
+pip install projectdavid-platform
+```
+
+No repository clone required. The compose files and configuration templates are bundled with the package.
+
 ---
 
+## Quick Start
 
+```bash
+pdavid --mode up
+```
 
-````mermaid
+On first run this will:
+
+- Generate a `.env` file with unique, cryptographically secure secrets
+- Prompt for optional values (HuggingFace token for gated model access)
+- Pull all required Docker images
+- Start the full stack in detached mode
+
+### GPU stack (vLLM + Ollama)
+
+```bash
+pdavid --mode up --gpu
+```
+
+Requires an NVIDIA GPU with the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) installed.
+
+---
+
+## Stack
+
+```mermaid
 %%{init: {
   "theme": "base",
   "themeVariables": {
@@ -27,102 +64,215 @@ nav_order: 2
     "clusterBorder": "#cbd5e1",
     "titleColor": "#1e293b",
     "lineColor": "#94a3b8",
-    "fontSize": "18px",
+    "fontSize": "16px",
     "fontFamily": "Georgia, serif"
   }
 }}%%
-graph TD
-    Caller([Inference Worker\nor API Route])
-    Platform([ProjectDavid Platform\nEntity Client])
+flowchart TD
+    INSTALL["pip install projectdavid-platform"]
+    CMD["pdavid --mode up"]
 
-    subgraph Arbiter ["InferenceArbiter — Gate-keeper"]
-        direction TB
-        ArbiterInit[__init__\nAccepts Sync or Async Redis]
-        URLReconstruct[_reconstruct_url\nAsync to Sync Redis URL]
-        ProviderFactory[get_provider_instance\nNEW instance per run — no caching]
-    end
+    CMD --> API
+    CMD --> SANDBOX
+    CMD --> DB
+    CMD --> REDIS
+    CMD --> QDRANT
+    CMD --> SEARXNG
+    CMD --> BROWSER
+    CMD --> OTEL
+    CMD --> JAEGER
+    CMD --> SAMBA
+    CMD -.->|"--gpu" | OLLAMA
+    CMD -.->|"--gpu" | VLLM
 
-    subgraph Cache ["AssistantCache — Shared Infrastructure"]
-        direction TB
-        CacheKey[_cache_key\nassistant-id-config]
+    INSTALL --> CMD
 
-        subgraph ReadPath ["Read Path"]
-            GetOp[get\nAsync or thread-wrapped sync]
-            CacheHit{Cache Hit?}
-            ReturnCached[Return Cached Payload]
-        end
+    API["api — FastAPI backend"]
+    SANDBOX["sandbox — Secure code execution"]
+    DB["db — MySQL 8.0"]
+    REDIS["redis — Cache and message broker"]
+    QDRANT["qdrant — Vector database"]
+    SEARXNG["searxng — Self-hosted web search"]
+    BROWSER["browser — Headless browser / web agent"]
+    OTEL["otel-collector — Telemetry collection"]
+    JAEGER["jaeger — Distributed tracing UI"]
+    SAMBA["samba — File sharing"]
+    OLLAMA["ollama — Local LLM inference"]
+    VLLM["vllm — High-throughput GPU inference"]
 
-        subgraph WritePath ["Write Path"]
-            FetchPlatform[retrieve\nFetch from Platform API]
-            NormalizeTools[Normalize Tools\ndict / model_dump / .dict]
-            NormalizeMeta[_normalize_bool\nstr/int/bool to bool]
-            BuildPayload[Build Payload\ninstructions, tools, agent_mode\nweb_access, deep_research\nmeta_data, is_research_worker]
-            SetOp[set\nJSON serialize + TTL]
-        end
+    classDef install fill:#ede9fe,stroke:#7c3aed,stroke-width:1.5px,color:#4c1d95
+    classDef cmd    fill:#dbeafe,stroke:#3b82f6,stroke-width:1.5px,color:#1e3a5f
+    classDef core   fill:#dbeafe,stroke:#3b82f6,stroke-width:1px,color:#1e3a5f
+    classDef intel  fill:#fef3c7,stroke:#f59e0b,stroke-width:1px,color:#78350f
+    classDef obs    fill:#ede9fe,stroke:#7c3aed,stroke-width:1px,color:#4c1d95
+    classDef files  fill:#dcfce7,stroke:#22c55e,stroke-width:1px,color:#14532d
+    classDef gpu    fill:#fdf2f8,stroke:#ec4899,stroke-width:1px,color:#831843
 
-        subgraph InvalidatePath ["Invalidate Path"]
-            DeleteOp[delete\nAsync]
-            InvalidateSync[invalidate_sync\nSync wrapper]
-            RetrieveSync[retrieve_sync\nasyncio.run wrapper]
-        end
-    end
+    class INSTALL install
+    class CMD cmd
+    class API,SANDBOX,DB,REDIS,QDRANT core
+    class SEARXNG,BROWSER intel
+    class OTEL,JAEGER obs
+    class SAMBA files
+    class OLLAMA,VLLM gpu
+```
 
-    subgraph RedisLayer ["Redis — Cache Storage"]
-        direction TB
-        SyncClient[redis.Redis\nSync Client]
-        AsyncClient[redis.asyncio.Redis\nAsync Client]
-        TTLStore[(Key-Value Store\nTTL default 300s)]
-    end
+---
 
-    Caller --> |"Inject redis client"| ArbiterInit
-    ArbiterInit --> |"Async Redis detected"| URLReconstruct
-    URLReconstruct --> |"Reconstructed URL"| ArbiterInit
-    ArbiterInit --> |"Instantiates shared cache"| CacheKey
-    Caller --> |"Request provider"| ProviderFactory
-    ProviderFactory --> |"Passes assistant_cache ref"| GetOp
+## Stack Services
 
-    Caller ==> |"retrieve(assistant_id)"| GetOp
-    GetOp --> CacheKey
-    CacheKey --> GetOp
-    GetOp --> CacheHit
-    CacheHit -- "Yes" --> ReturnCached
-    ReturnCached -.-> Caller
+| Service | Image | Description |
+|---|---|---|
+| `api` | `thanosprime/entities-api-api` | FastAPI backend exposing assistant and inference endpoints |
+| `sandbox` | `thanosprime/entities-api-sandbox` | Secure code execution environment |
+| `db` | `mysql:8.0` | Relational persistence |
+| `qdrant` | `qdrant/qdrant` | Vector database for embeddings and RAG |
+| `redis` | `redis:7` | Cache and message broker |
+| `searxng` | `searxng/searxng` | Self-hosted web search |
+| `browser` | `browserless/chromium` | Headless browser for web agent tooling |
+| `otel-collector` | `otel/opentelemetry-collector-contrib` | Telemetry collection |
+| `jaeger` | `jaegertracing/all-in-one` | Distributed tracing UI |
+| `samba` | `dperson/samba` | File sharing for uploaded documents |
+| `ollama` | `ollama/ollama` | Local LLM inference (GPU stack only) |
+| `vllm` | `vllm/vllm-openai` | High-throughput GPU inference (GPU stack only) |
 
-    CacheHit -- "No - miss" --> FetchPlatform
-    FetchPlatform --> |"assistants.retrieve_assistant"| Platform
-    Platform -.-> |"Assistant object"| FetchPlatform
-    FetchPlatform --> NormalizeTools
-    FetchPlatform --> NormalizeMeta
-    NormalizeTools --> BuildPayload
-    NormalizeMeta --> BuildPayload
-    BuildPayload --> SetOp
-    SetOp ==> |"JSON + TTL"| TTLStore
-    SetOp -.-> |"Return payload"| Caller
+---
 
-    GetOp --> |"GET key"| TTLStore
-    TTLStore -.-> |"Raw JSON"| GetOp
+## Prerequisites
 
-    SyncClient --> TTLStore
-    AsyncClient --> TTLStore
+- Docker and Docker Compose
+- Python 3.9 or later
+- NVIDIA GPU with NVIDIA Container Toolkit (GPU stack only)
 
-    InvalidateSync --> DeleteOp
-    RetrieveSync --> |"asyncio.run"| FetchPlatform
-    DeleteOp --> |"DEL key"| TTLStore
+---
 
-    classDef main fill:#dbeafe,stroke:#3b82f6,stroke-width:1.5px,color:#1e3a5f
-    classDef worker fill:#fef3c7,stroke:#f59e0b,stroke-width:1.5px,color:#78350f
-    classDef external fill:#dcfce7,stroke:#22c55e,stroke-width:1.5px,color:#14532d
-    classDef bridge fill:#ede9fe,stroke:#7c3aed,stroke-width:1.5px,color:#4c1d95
+## Lifecycle Commands
 
-    class ArbiterInit,URLReconstruct,ProviderFactory main
-    class GetOp,CacheHit,ReturnCached,FetchPlatform,NormalizeTools,NormalizeMeta,BuildPayload,SetOp,CacheKey worker
-    class DeleteOp,InvalidateSync,RetrieveSync bridge
-    class SyncClient,AsyncClient,TTLStore,Caller,Platform external
+### Start the stack
 
-    style Arbiter fill:#eff6ff,stroke:#93c5fd,color:#1e3a5f
-    style Cache fill:#fffbeb,stroke:#fcd34d,color:#78350f
-    style ReadPath fill:#fef9ee,stroke:#fbbf24,color:#78350f
-    style WritePath fill:#fef9ee,stroke:#fbbf24,color:#78350f
-    style InvalidatePath fill:#f5f3ff,stroke:#a78bfa,color:#4c1d95
-    style RedisLayer fill:#f0fdf4,stroke:#86efac,color:#14532d
-   ````
+```bash
+pdavid --mode up
+```
+
+### Start with GPU services
+
+```bash
+pdavid --mode up --gpu
+```
+
+### Stop the stack
+
+```bash
+pdavid --mode down_only
+```
+
+### Stop and remove all volumes
+
+```bash
+pdavid --mode down_only --clear-volumes
+```
+
+### Force recreate all containers
+
+```bash
+pdavid --mode up --force-recreate
+```
+
+### Stream logs
+
+```bash
+pdavid --mode logs --follow
+```
+
+### Destroy all stack data
+
+```bash
+pdavid --nuke
+```
+
+Requires interactive confirmation. Cannot be undone.
+
+---
+
+## Configuration
+
+### Setting optional values
+
+Optional values such as the HuggingFace token can be set at any time without regenerating secrets:
+
+```bash
+pdavid configure --set HF_TOKEN=hf_abc123
+pdavid configure --set VLLM_MODEL=Qwen/Qwen2.5-VL-7B-Instruct
+```
+
+Or interactively:
+
+```bash
+pdavid configure --interactive
+```
+
+### Rotating secrets
+
+The orchestrator warns when a change requires additional steps to apply safely. Database password rotation requires clearing the initialised volume:
+
+```bash
+pdavid configure --set MYSQL_PASSWORD=<new_password>
+# Follow the warning instructions printed by the command
+```
+
+---
+
+## Post-startup Provisioning
+
+Once the stack is running, provision the admin user and default assistant:
+
+```bash
+# Bootstrap the default admin user
+pdavid bootstrap-admin
+
+# Create a regular user
+pdavid create-user --email user@example.com --name "Alice"
+
+# Set up the default assistant
+pdavid setup-assistant --api-key ad_... --user-id usr_...
+```
+
+Full provisioning walkthrough: [`docs/boot_strap.md`](docs/boot_strap.md)
+
+---
+
+## Docker Images
+
+Both owned images are published to Docker Hub and updated automatically on each release of the source repository.
+
+- [thanosprime/entities-api-api](https://hub.docker.com/r/thanosprime/entities-api-api)
+- [thanosprime/entities-api-sandbox](https://hub.docker.com/r/thanosprime/entities-api-sandbox)
+
+---
+
+## Related Repositories
+
+| Repository | Purpose |
+|---|---|
+| [entities_api](https://github.com/frankie336/entities_api) | FastAPI backend source code, inference engine, and tooling framework |
+| [projectdavid](https://github.com/frankie336/projectdavid) | Python SDK for interacting with the Entities API |
+| [platform-docker](https://github.com/project-david-ai/platform-docker) | This repository — deployment orchestration |
+
+---
+
+## Working with the Source Code
+
+This repository is intended for deploying prebuilt images. To develop, extend, or contribute to the platform source:
+
+```bash
+git clone https://github.com/frankie336/entities_api.git
+cd entities_api
+pip install -e .
+```
+
+---
+
+## License
+
+Distributed under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/).
+Commercial licensing is available on request.

@@ -17,7 +17,7 @@ Associated methods can be used to extend the memory and contextual recall of AI 
 Client-side document chunking and vectorization requires the `embeddings` extra. Without it, local file processing will fail.
 
 ```bash
-pip install "projectdavid[embeddings]"
+pip install projectdavid[text-embeddings]
 ```
 
 

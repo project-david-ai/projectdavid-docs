@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/project-david-ai/projectdavid-docs/compare/v1.4.0...v1.4.1) (2026-03-27)
+
+
+### Bug Fixes
+
+* remove :latest suffix from docker metadata images field ([837ba60](https://github.com/project-david-ai/projectdavid-docs/commit/837ba608dd8cd3775656a868f84d117562682211))
+
 # [1.4.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.3.0...v1.4.0) (2026-03-27)
 
 

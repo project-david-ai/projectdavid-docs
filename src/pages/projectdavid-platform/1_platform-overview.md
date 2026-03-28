@@ -21,6 +21,14 @@ nav_order: 1
 
 ---
 
+## How It All Connects
+
+![Project David Pipeline](https://raw.githubusercontent.com/project-david-ai/projectdavid-core/main/assets/svg/projectdavid-pipeline.svg)
+
+> Every component of the sovereign AI stack — from SDK client through inference provider to the streaming response — in a single view. This is what `pdavid --mode up` brings to life.
+
+---
+
 ## Prerequisites
 
 - Docker with Docker Compose plugin
@@ -297,13 +305,13 @@ Ray discovers the node automatically. No code changes required.
 ## Related
 
 - [Project David Core](/docs/core-overview) — run from source, contribute to the codebase
-- [SDK Quick Start](/docs/1_sdk-quick-start) — build your first assistant
+- [SDK Quick Start](/docs/sdk-quick-start) — build your first assistant
 - [Platform Commands](/docs/projectdavid-platform-commands) — full command reference
-- [Configuration Reference](/docs/core-configuration) — environment variable reference
+- [Configuration Reference](/docs/platform-configuration) — environment variable reference
 
 ---
 
 ## License
 
 Distributed under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/).
-Commercial use requires a separate licence — contact [engineering@projectdavid.co.uk](mailto:engineering@projectdavid.co.uk).
+Commercial use requires a separate licence — contact [licensing@projectdavid.co.uk](mailto:licensing@projectdavid.co.uk).

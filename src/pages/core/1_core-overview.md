@@ -7,7 +7,7 @@ nav_order: 1
 
 # Project David Core
 
-> This guide is for engineers who want to run Project David from source, contribute to the codebase, or deploy custom builds. If you want the fastest path to a running stack, see [Project David Platform](/docs/projectdavid-platform-commands) instead.
+> This guide is for engineers who want to run Project David from source, contribute to the codebase, or deploy custom builds. If you want the fastest path to a running stack, see [Project David Platform](/docs/platform-overview) instead.
 
 Project David Core is the runtime engine of the sovereign AI stack — a full-scale, containerised LLM orchestration platform built around the same primitives as the OpenAI Assistants API: **Assistants, Threads, Messages, Runs, and Tools** — without the lock-in.
 
@@ -70,12 +70,12 @@ pip install -e .
 **3. Build and start the Docker stack.**
 
 ```bash
-platform-api --mode up
+platform-api docker-manager --mode up
 ```
 
 > On first run, Project David generates a `.env` file containing unique locally-generated secrets — database passwords, signing keys, and service credentials. This file is never committed to version control. The Docker Compose stack is fully wired to these secrets automatically.
 
-The CLI exposes a full suite of orchestration options:
+The `docker-manager` subcommand exposes a full suite of orchestration options:
 
 | Option | Description |
 |---|---|
@@ -150,10 +150,10 @@ Project David intentionally uses two distinct CLI entry points:
 
 | CLI | Entry point | Layer |
 |---|---|---|
-| Core | `platform-api` | Source deployment — running from cloned repo |
+| Core | `platform-api docker-manager` | Source deployment — running from cloned repo |
 | Platform | `pdavid` | Container deployment — running from pip-installed platform package |
 
-This distinction is deliberate. When a developer runs `platform-api` they know they are operating directly on the core runtime. When they run `pdavid` they are operating the containerised platform layer. There is no ambiguity about which layer is being managed.
+This distinction is deliberate. When a developer runs `platform-api docker-manager` they know they are operating directly on the core runtime. When they run `pdavid` they are operating the containerised platform layer. There is no ambiguity about which layer is being managed.
 
 ---
 
@@ -177,7 +177,7 @@ Project David Core comprises the following services, all orchestrated via Docker
 
 ## Related
 
-- [Project David Platform](/docs/projectdavid-platform-commands) — containerised deployment, no source required
+- [Project David Platform](/docs/platform-overview) — containerised deployment, no source required
 - [SDK Quick Start](/docs/sdk-quick-start) — build your first assistant once the stack is running
 
 ---

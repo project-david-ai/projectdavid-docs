@@ -1,3 +1,11 @@
+# [1.6.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.5.0...v1.6.0) (2026-03-28)
+
+
+### Features
+
+* add HTTPS — port 443, SSL cert mount, HTTP redirect ([06fb2c2](https://github.com/project-david-ai/projectdavid-docs/commit/06fb2c2e4035c59b0b3a645ccc0000d648823a9f))
+* HTTPS support, complete docs overhaul — core, platform, SDK ([ac96007](https://github.com/project-david-ai/projectdavid-docs/commit/ac96007c9273025f0db35c4c0b3bbbe96bebc3b9))
+
 # [1.5.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.4.1...v1.5.0) (2026-03-28)
 
 

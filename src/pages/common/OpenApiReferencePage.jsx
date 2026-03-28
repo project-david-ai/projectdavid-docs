@@ -1,7 +1,6 @@
 // src/pages/common/OpenApiReferencePage.jsx
 import './ApiReferencePage.css';
-
-const OPENAPI_URL = import.meta.env.VITE_OPENAPI_URL || 'http://localhost:9000/openapi.json';
+const OPENAPI_URL = import.meta.env.VITE_OPENAPI_URL || '/openapi.json';
 
 export default function OpenApiReferencePage() {
 

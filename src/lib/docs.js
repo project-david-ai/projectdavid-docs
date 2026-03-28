@@ -6,26 +6,33 @@
    ──────────────────────────────────────────────────────────── */
 
 const categoryDisplayNames = {
-  'overview'      : 'OVERVIEW',
-  'projectdavid-platform': 'PROJECT DAVID PLATFORM',
-  'sdk'           : 'SDK',
-  'endpoints'     : 'API ENDPOINTS',
-  'providers'     : 'PROVIDERS',
-  'infrastructure': 'INFRASTRUCTURE',
-  'architecture'  : 'ARCHITECTURE',
-  'algorithms'    : 'ALGORITHMS',
+  'overview'              : 'OVERVIEW',
+  'core'                  : 'PROJECT DAVID CORE',
+  'projectdavid-platform' : 'PROJECT DAVID PLATFORM',
+  'sdk'                   : 'SDK',
+  'endpoints'             : 'API ENDPOINTS',
+  'providers'             : 'PROVIDERS',
+  'infrastructure'        : 'INFRASTRUCTURE',
+  'api-infra'             : 'API INFRASTRUCTURE',
+  'architecture'          : 'ARCHITECTURE',
+  'algorithms'            : 'ALGORITHMS',
 };
 
 const categoryOrder = {
-  'overview'      : 1,
-  'projectdavid-platform' : 2,
-  'sdk'           : 3,
-  'endpoints'     : 4,
-  'providers'     : 5,
-  'infrastructure': 6,
-  'architecture'  : 7,
-  'algorithms'    : 8,
+  'overview'              : 1,
+  'core'                  : 2,
+  'projectdavid-platform' : 3,
+  'sdk'                   : 4,
+  'endpoints'             : 5,
+  'providers'             : 6,
+  'infrastructure'        : 7,
+  'api-infra'             : 8,
+  'architecture'          : 9,
+  'algorithms'            : 10,
 };
+
+
+
 
 /* ---------- tiny front-matter parser (keeps bundle slim) ---------- */
 function simpleMatter(raw) {

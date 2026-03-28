@@ -5,15 +5,26 @@ import './DocsHub.css';
 export default function DocsHub() {
 
   const cards = [
-  {
-    href: '/docs/api-index',
-    title: 'Developer SDK & API',
-    blurb: 'Build AI-powered applications on a running Project David instance. Assistants, threads, tools, inference, fine-tuning, and full API reference.',
+    {
+      href: '/docs/core-overview',
+      title: 'Project David Core',
+      blurb: 'The runtime engine. Clone the repository, explore the API architecture, and run the core inference and orchestration stack directly.',
+    },
+
+    {
+    href: '/docs/projectdavid-platform-commands',
+    title: 'Project David Platform',
+    blurb: 'The containerised deployment of Project David Core. Pull the pre-built Docker images, configure your environment, and bring up the full sovereign AI stack with a single command.',
   },
   {
     href: '/docs/infra-index',
     title: 'Platform Operations',
     blurb: 'Deploy and operate the Project David sovereign AI stack. Docker images, cluster configuration, infrastructure management, and production deployment guides.',
+  },
+  {
+    href: '/docs/api-index',
+    title: 'Developer SDK & API',
+    blurb: 'Build AI-powered applications on a running Project David instance. Assistants, threads, tools, inference, fine-tuning, and full API reference.',
   },
   {
     href: '/docs/role_resolution_algorithm',

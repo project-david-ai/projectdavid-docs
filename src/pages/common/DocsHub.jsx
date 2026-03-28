@@ -1,6 +1,5 @@
 //src/pages/common/DocsHub.jsx
 import { Link } from 'react-router-dom';
-import logoBW from '../../assets/logo/logo-entities-black-and-white.png';
 import './DocsHub.css';
 
 export default function DocsHub() {
@@ -29,8 +28,8 @@ export default function DocsHub() {
       <div className="docs-hub__grid">
         {cards.map((c) => (
           <Link className="docs-card" to={c.href} key={c.href}>
-            {/* Small centred logo */}
-            <img src={logoBW} alt="Entities logo" className="docs-card__logo" />
+
+
 
             <h2 className="docs-card__heading">{c.title}</h2>
             <p className="docs-card__blurb">{c.blurb}</p>

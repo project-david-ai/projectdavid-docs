@@ -3,23 +3,24 @@ import { Link } from 'react-router-dom';
 import './DocsHub.css';
 
 export default function DocsHub() {
+
   const cards = [
-    {
-      // Use relative paths instead of absolute URLs
-      href: '/docs/api-index',
-      title: 'Entities API + SDK',
-      blurb: 'Build with the Entities API REST endpoints and SDKs',
-    },
-    {
-      // Use relative paths instead of absolute URLs
-      href: '/docs/infra-index',
-      title: 'Infrastructure Guide',
-      blurb:
-        'Hands-on guide to running the Entities API in your own environment. Fork the repo, ' +
-        'explore the architecture, and follow step-by-step instructions for local development, ' +
-        'testing, and production deployment',
-    },
-  ];
+  {
+    href: '/docs/api-index',
+    title: 'Developer SDK & API',
+    blurb: 'Build AI-powered applications on a running Project David instance. Assistants, threads, tools, inference, fine-tuning, and full API reference.',
+  },
+  {
+    href: '/docs/infra-index',
+    title: 'Platform Operations',
+    blurb: 'Deploy and operate the Project David sovereign AI stack. Docker images, cluster configuration, infrastructure management, and production deployment guides.',
+  },
+  {
+    href: '/docs/role_resolution_algorithm',
+    title: 'Algorithms & Architecture',
+    blurb: 'Formal specifications, proofs, and architectural deep-dives for researchers and technically curious evaluators.',
+  },
+];
 
   return (
     <section className="docs-hub">

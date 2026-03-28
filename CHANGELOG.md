@@ -1,3 +1,16 @@
+# [1.7.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.6.0...v1.7.0) (2026-03-28)
+
+
+### Bug Fixes
+
+* serve OpenAPI spec from static file — removes live API dependency ([7f975a1](https://github.com/project-david-ai/projectdavid-docs/commit/7f975a1e6aaa97a6658ef9d3e4af5295ff31c9f1))
+
+
+### Features
+
+* static OpenAPI spec, corrected core CLI commands, pipeline diagram on platform overview ([17b1666](https://github.com/project-david-ai/projectdavid-docs/commit/17b16666e24e8f2f597d07c939a81bc18d23e61e))
+* static OpenAPI spec, corrected core CLI commands, pipeline diagram on platform overview ([65d89ed](https://github.com/project-david-ai/projectdavid-docs/commit/65d89ed7a487ee7c5d237121a21508274d2e5e59))
+
 # [1.6.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.5.0...v1.6.0) (2026-03-28)
 
 

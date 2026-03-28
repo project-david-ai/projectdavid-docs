@@ -178,9 +178,7 @@ Project David Core comprises the following services, all orchestrated via Docker
 ## Related
 
 - [Project David Platform](/docs/projectdavid-platform-commands) — containerised deployment, no source required
-- [SDK Quick Start](/docs/1_sdk-quick-start) — build your first assistant
-- [Bootstrap Guide](/docs/boot_strap_guide) — detailed production setup
-- [Docker Commands](/docs/docker_commands) — full CLI reference
+- [SDK Quick Start](/docs/sdk-quick-start) — build your first assistant once the stack is running
 
 ---
 

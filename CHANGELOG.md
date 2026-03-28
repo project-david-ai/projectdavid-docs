@@ -1,3 +1,17 @@
+# [1.5.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.4.1...v1.5.0) (2026-03-28)
+
+
+### Bug Fixes
+
+* route SDK card to sdk-quick-start ([fa5e7a3](https://github.com/project-david-ai/projectdavid-docs/commit/fa5e7a3054dd3963f1570863d95764f2452fa9c3))
+
+
+### Features
+
+* add core-overview landing page with stack diagram and CLI reference ([bd875fe](https://github.com/project-david-ai/projectdavid-docs/commit/bd875fe7eb6c2ffab9b3aae08d544ef873493684))
+* complete docs overhaul — core, platform, SDK sections ([30cf2f0](https://github.com/project-david-ai/projectdavid-docs/commit/30cf2f02714cb1e061515d59fc8365b47261ccdf))
+* redesign docs hub cards — three audience-split entry points ([f86d20e](https://github.com/project-david-ai/projectdavid-docs/commit/f86d20ee2ecff4abfeb9e98f372011c5294ae346))
+
 ## [1.4.1](https://github.com/project-david-ai/projectdavid-docs/compare/v1.4.0...v1.4.1) (2026-03-27)
 
 

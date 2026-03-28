@@ -13,8 +13,7 @@ The ProjectDavid Fine-Tuning pipeline allows you to create custom-tailored model
 
 ---
 
-[![Project David](https://raw.githubusercontent.com/frankie336/entities_api/master/assets/projectdavid_logo.png)](https://raw.githubusercontent.com/frankie336/entities_api/master/assets/projectdavid_logo.png)
-
+[![Project David](https://raw.githubusercontent.com/project-david-ai/projectdavid_docs/master/src/assets/svg/projectdavid-forge.svg)](https://github.com/project-david-ai/projectdavid_docs)
 
 
 

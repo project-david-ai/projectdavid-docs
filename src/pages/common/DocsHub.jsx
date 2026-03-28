@@ -1,26 +1,35 @@
 //src/pages/common/DocsHub.jsx
 import { Link } from 'react-router-dom';
-import logoBW from '../../assets/logo/logo-entities-black-and-white.png';
 import './DocsHub.css';
 
 export default function DocsHub() {
+
   const cards = [
     {
-      // Use relative paths instead of absolute URLs
-      href: '/docs/api-index',
-      title: 'Entities API + SDK',
-      blurb: 'Build with the Entities API REST endpoints and SDKs',
+      href: '/docs/core-overview',
+      title: 'Project David Core',
+      blurb: 'The runtime engine. Clone the repository, explore the API architecture, and run the core inference and orchestration stack directly.',
     },
+
     {
-      // Use relative paths instead of absolute URLs
-      href: '/docs/infra-index',
-      title: 'Infrastructure Guide',
-      blurb:
-        'Hands-on guide to running the Entities API in your own environment. Fork the repo, ' +
-        'explore the architecture, and follow step-by-step instructions for local development, ' +
-        'testing, and production deployment',
-    },
-  ];
+    href: '/docs/platform-overview',
+    title: 'Project David Platform',
+    blurb: 'The containerised deployment of Project David Core. Pull the pre-built Docker images, configure your environment, and bring up the full sovereign AI stack with a single command.',
+  },
+
+    {
+  href: '/docs/sdk-quick-start',
+  title: 'Developer SDK & API',
+  blurb: 'Build AI-powered applications on a running Project David instance. Assistants, threads, tools, inference, fine-tuning, and full API reference.',
+},
+
+
+    {
+    href: '/docs/role_resolution_algorithm',
+    title: 'Algorithms & Architecture',
+    blurb: 'Formal specifications, proofs, and architectural deep-dives for researchers and technically curious evaluators.',
+  },
+];
 
   return (
     <section className="docs-hub">
@@ -29,8 +38,8 @@ export default function DocsHub() {
       <div className="docs-hub__grid">
         {cards.map((c) => (
           <Link className="docs-card" to={c.href} key={c.href}>
-            {/* Small centred logo */}
-            <img src={logoBW} alt="Entities logo" className="docs-card__logo" />
+
+
 
             <h2 className="docs-card__heading">{c.title}</h2>
             <p className="docs-card__blurb">{c.blurb}</p>

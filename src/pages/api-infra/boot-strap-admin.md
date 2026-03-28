@@ -1,3 +1,4 @@
+
 #  Development Bootstrap (Direct Scripts)
 
 When developing locally, you can run setup scripts directly — no Docker orchestration required.  

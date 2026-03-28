@@ -22,7 +22,7 @@
 /* ----------  Card grid  ---------- */
 .docs-hub__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 2.5rem;
 }
 
@@ -30,9 +30,9 @@
 .docs-card {
   display: flex;
   flex-direction: column;
-  align-items: center;      /* icon / logo centred */
-  text-align: left;         /* headline + copy rag-left for readability */
-  padding: 2rem 1.75rem;    /* generous insets */
+  align-items: center;
+  text-align: left;
+  padding: 2rem 1.75rem;
   border: 1px solid #e5e7eb;
   border-radius: 0.75rem;
   background: #ffffff;
@@ -48,19 +48,18 @@
 
 /* ----------  Logo / icon  ---------- */
 .docs-card__logo {
-  width: 56px;              /* ≈ 20–25 % of a typical card width */
+  width: 56px;
   height: auto;
-  margin: 0 auto 1rem;      /* centred, space below */
-  filter: grayscale(100%);  /* guarantee pure B/W */
+  margin: 0 auto 1rem;
+  filter: grayscale(100%);
   opacity: 0.9;
   transition: transform 0.2s ease;
 }
 
 .docs-card:hover .docs-card__logo {
-  transform: scale(1.05);   /* subtle lift on hover */
+  transform: scale(1.05);
 }
 
-/* Leave the emoji slot in case a card keeps an inline icon */
 .docs-card__icon {
   font-size: 2.5rem;
   line-height: 1;

@@ -1,17 +1,19 @@
-# docker-compose.prod.yml
 version: "3.8"
 
 services:
   docs:
-    # ─── Build context (required for CI compose‑check) ─────
+    # ─── Build context (required for CI compose-check) ─────
     build:
       context: .
-      dockerfile: Dockerfile          # ← your multi‑stage prod Dockerfile
+      dockerfile: Dockerfile          # ← your multi-stage prod Dockerfile
     # ─── Runtime image tag ──────────
-    image: thanosprime/projectdavid_docs:latest
+    image: thanosprime/projectdavid-docs:latest
     container_name: projectdavid_docs
     ports:
-      - "80:80"                       # host:container
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     restart: unless-stopped
     # Optional future env vars:
     # environment:

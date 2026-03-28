@@ -38,13 +38,14 @@ nav_order: 1
 pip install projectdavid-platform
 ```
 
-**2. Start the stack.**
+**2. Create a dedicated working directory and start the stack.**
 
 ```bash
+mkdir ~/projectdavid && cd ~/projectdavid
 pdavid --mode up
 ```
 
-On first run the platform generates a `.env` file with all secrets and a `docker-compose.yml` wired to those secrets. Both files are created once and never overwritten on subsequent runs.
+On first run the platform generates a `.env` file with all secrets and a set of Docker Compose files wired to those secrets. Both are created once and never overwritten on subsequent runs.
 
 **3. Provision your admin credentials.**
 
@@ -86,6 +87,30 @@ print(api_key.plain_key)
 ```
 
 > Do not use the admin key for general API calls. Issue dedicated user keys for all application access.
+
+---
+
+## What Gets Created on First Run
+
+`pdavid --mode up` writes the following files and directories into your current working directory. Run it from a dedicated empty directory — not your home directory or a shared project folder.
+
+| Path | What it is |
+|---|---|
+| `.env` | All generated secrets and configuration — never committed to version control |
+| `docker-compose.yml` | Base stack Compose file |
+| `docker-compose.gpu.yml` | GPU overlay (Ollama + vLLM) |
+| `docker-compose.ollama.yml` | Ollama-only overlay |
+| `docker-compose.vllm.yml` | vLLM-only overlay |
+| `docker-compose.training.yml` | Sovereign Forge training overlay |
+| `docker/nginx/nginx.conf` | nginx reverse proxy config |
+| `docker/otel/otel-config.yaml` | OpenTelemetry collector config |
+| `docker/searxng/settings.yml` | SearXNG web search config |
+| `.dockerignore` | Prevents secrets being copied into images |
+| `shared_data/` | Mounted volume for file uploads, datasets, and model adapters |
+
+All of these are installed once and never overwritten on subsequent runs — local edits are preserved. The platform detects existing files and skips them.
+
+> A common convention is `~/projectdavid/` or `/opt/projectdavid/` for the working directory.
 
 ---
 

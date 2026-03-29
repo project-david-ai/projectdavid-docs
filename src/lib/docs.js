@@ -3,6 +3,7 @@
    – collect markdown / tex / tla pages
    – expose `pages` map + grouped nav list
    – supports explicit slug, nav_order, and optional nav_exclude
+   – supports hiddenCategories for bulk category hiding
    ──────────────────────────────────────────────────────────── */
 
 const categoryDisplayNames = {
@@ -15,7 +16,6 @@ const categoryDisplayNames = {
   'infrastructure'        : 'INFRASTRUCTURE',
   'api-infra'             : 'API INFRASTRUCTURE',
   'architecture'          : 'ARCHITECTURE',
-  'algorithms'            : 'ALGORITHMS',
 };
 
 const categoryOrder = {
@@ -28,11 +28,9 @@ const categoryOrder = {
   'infrastructure'        : 7,
   'api-infra'             : 8,
   'architecture'          : 9,
-  'algorithms'            : 10,
 };
 
-
-
+const hiddenCategories = new Set(['algorithms']);
 
 /* ---------- tiny front-matter parser (keeps bundle slim) ---------- */
 function simpleMatter(raw) {
@@ -84,6 +82,8 @@ export const groupedNavItems = {};
 
 Object.entries(docModules).forEach(([path, raw]) => {
   const { data } = simpleMatter(raw);
+
+  // Per-page exclusion
   if (data.nav_exclude === 'true') return;
 
   const filename = path.split('/').pop();
@@ -91,6 +91,9 @@ Object.entries(docModules).forEach(([path, raw]) => {
 
   const parts = path.split('/');
   const category = data.category || parts[parts.length - 2];
+
+  // Category-level exclusion
+  if (hiddenCategories.has(category)) return;
 
   if (!groupedNavItems[category]) {
     groupedNavItems[category] = [];

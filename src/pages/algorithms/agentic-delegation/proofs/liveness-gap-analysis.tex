@@ -20,11 +20,11 @@ is $\Pi_4$ at the supervisor boundary.
 \subsection*{What Is Currently Established}
 
 \begin{itemize}
-  \item \textbf{Deadlock Freedom} ✅ — scratchpad semantics, no locks held
-  \item \textbf{Bounded Termination} ✅ — \texttt{max\_turns=200}, \texttt{\_WORKER\_RUN\_TIMEOUT=1200}
-  \item \textbf{Probabilistic Convergence} ✅ — under independence assumption
-  \item \textbf{$\Pi_2$ Worker Liveness} ✅ — \texttt{\_wait\_for\_run\_completion} with \texttt{asyncio.TimeoutError}
-  \item \textbf{$WF_{\text{vars}}(WorkerCompletes)$} ✅ — sound, backed by timeout mechanism
+  \item \textbf{Deadlock Freedom} [verified] — scratchpad semantics, no locks held
+  \item \textbf{Bounded Termination} [verified] — \texttt{max\_turns=200}, \texttt{\_WORKER\_RUN\_TIMEOUT=1200}
+  \item \textbf{Probabilistic Convergence} [verified] — under independence assumption
+  \item \textbf{$\Pi_2$ Worker Liveness} [verified] — \texttt{\_wait\_for\_run\_completion} with \texttt{asyncio.TimeoutError}
+  \item \textbf{$WF_{\text{vars}}(WorkerCompletes)$} [verified] — sound, backed by timeout mechanism
 \end{itemize}
 
 \subsection*{$\Pi_1$ — Supervisor Persistence (Soft)}
@@ -40,7 +40,7 @@ rather than a tool call — breaks persistence silently. The loop exits cleanly
 because \texttt{get\_function\_call\_state()} returns empty, which is an
 indistinguishable success signal.
 
-\textbf{Status:} ⚠️ Soft — structurally present, behaviourally contingent.
+\textbf{Status:} Soft — structurally present, behaviourally contingent.
 
 \subsection*{$\Pi_2$ — Worker Liveness (Implemented)}
 
@@ -59,7 +59,7 @@ The error is submitted as tool output and the supervisor loop continues.
 Workers cannot run indefinitely. The fairness annotation $WF_{\text{vars}}(WorkerCompletes)$
 in the TLA+ spec is sound against this mechanism.
 
-\textbf{Status:} ✅ Implemented.
+\textbf{Status:} Implemented.
 
 \subsection*{$\Pi_3$ — Fair Scheduling (Infrastructure-Dependent)}
 
@@ -68,7 +68,7 @@ Worker runs are created via \texttt{create\_ephemeral\_run} and polled at
 fairly depends on the task queue infrastructure (Celery or equivalent)
 that is not visible in this codebase.
 
-\textbf{Status:} ⚠️ Infrastructure-dependent — unverified at this layer.
+\textbf{Status:} Infrastructure-dependent — unverified at this layer.
 
 \subsection*{$\Pi_4$ — Recovery at Supervisor Boundary (Missing)}
 
@@ -95,7 +95,7 @@ Note: at the \textbf{worker level}, partial $\Pi_4$ exists — a timed-out worke
 submits an error as tool output and the supervisor may choose to re-delegate.
 But the supervisor itself has no equivalent when it hits its own bound.
 
-\textbf{Status:} ❌ Not implemented at supervisor boundary.
+\textbf{Status:} Not implemented at supervisor boundary.
 
 \subsection*{Correlated Failure Risk}
 
@@ -104,16 +104,16 @@ If the model fails consistently on a task type, $p$ is not stationary across
 delegations. The $P(\text{success by } n) = 1 - (1-p)^n$ bound is optimistic
 under correlated failure. No mitigation currently exists.
 
-\textbf{Status:} ❌ Unmitigated.
+\textbf{Status:} Unmitigated.
 
 \subsection*{Revised Gap Summary}
 
 \begin{itemize}
-  \item $\Pi_1$: structurally present, behaviourally soft ⚠️
-  \item $\Pi_2$: implemented ✅
-  \item $\Pi_3$: infrastructure-dependent ⚠️
-  \item $\Pi_4$: missing at supervisor boundary ❌
-  \item Correlated failure: unmitigated ❌
+  \item $\Pi_1$: structurally present, behaviourally soft [partial]
+  \item $\Pi_2$: implemented [verified]
+  \item $\Pi_3$: infrastructure-dependent [unverified]
+  \item $\Pi_4$: missing at supervisor boundary [open]
+  \item Correlated failure: unmitigated [open]
 \end{itemize}
 
 The system is closer to live than the prior analysis stated.

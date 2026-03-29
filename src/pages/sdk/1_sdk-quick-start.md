@@ -3,6 +3,7 @@ title: Quick Start
 category: sdk
 slug: sdk-quick-start
 nav_order: 1
+# nav_exclude: true
 ---
 
 # Quick Start

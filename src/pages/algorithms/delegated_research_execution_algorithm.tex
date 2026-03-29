@@ -1,3 +1,11 @@
+---
+title: Delegated Research Execution Algorithm
+category: algorithms
+slug: delegated_research_execution_algorithm
+nav_order: 12
+status: current
+---
+
 \section{Delegated Research Execution Algorithm (DREA)}
 
 \subsection*{Goal}
@@ -50,9 +58,9 @@ R_w \leftarrow create\_run(A_w, T_w, meta)
 \forall e \in stream(R_w):
 \]
 \begin{itemize}
-    \item If $e$ is ScratchpadEvent → forward as structured JSON
-    \item If $e$ is reasoning → forward as reasoning chunk
-    \item If $e$ is content → accumulate + forward
+    \item If $e$ is ScratchpadEvent — forward as structured JSON
+    \item If $e$ is reasoning — forward as reasoning chunk
+    \item If $e$ is content — accumulate and forward
 \end{itemize}
 
 \item Wait until:

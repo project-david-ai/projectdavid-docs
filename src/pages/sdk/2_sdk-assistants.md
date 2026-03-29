@@ -105,7 +105,6 @@ client.assistants.update_assistant(
 # Creative writing — high temperature, no token cap
 assistant = client.assistants.create_assistant(
     name='Creative Writer',
-    model='llama3.1',
     instructions='You are a creative writing assistant.',
     temperature=1.4,
     top_p=0.95,
@@ -114,7 +113,6 @@ assistant = client.assistants.create_assistant(
 # Precise technical assistant — low temperature, capped output
 assistant = client.assistants.create_assistant(
     name='Technical Assistant',
-    model='llama3.1',
     instructions='You are a precise technical assistant.',
     temperature=0.2,
     max_tokens=2048,
@@ -122,10 +120,8 @@ assistant = client.assistants.create_assistant(
 
 # Agentic loop — needs longer outputs for tool calls
 assistant = client.assistants.create_assistant(
-    name='Agent',
-    model='llama3.1',
+    name='Agent',,
     instructions='You are an autonomous agent.',
-    agent_mode=True,
     temperature=0.6,
     max_tokens=8192,
 )

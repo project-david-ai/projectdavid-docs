@@ -30,7 +30,7 @@ The \texttt{L4\_EXECUTION\_LOOP} instructions enforce this behaviourally.
 (text reply with unresolved scratchpad entries) and forces re-delegation rather
 than accepting the LLM's exit as a clean completion.
 
-\textbf{Status:} ⚠️ Soft — structural container present, hard guard missing.
+\textbf{Status:} Soft — structural container present, hard guard missing.
 
 \subsection*{$\Pi_2$ — Worker Liveness}
 
@@ -42,7 +42,7 @@ caught in \texttt{handle\_delegate\_research\_task}, converted to an error tool 
 The supervisor loop continues. $WF_{\text{vars}}(WorkerCompletes)$ in the TLA+ spec
 is sound against this mechanism.
 
-\textbf{Status:} ✅ Implemented.
+\textbf{Status:} Implemented.
 
 \subsection*{$\Pi_3$ — Fair Scheduling}
 
@@ -56,7 +56,7 @@ equivalent) outside this codebase.
 level. If Celery workers are saturated, newly created ephemeral runs may queue
 indefinitely — $\Pi_3$ would fail silently.
 
-\textbf{Status:} ⚠️ Infrastructure-dependent.
+\textbf{Status:} Infrastructure-dependent.
 
 \subsection*{$\Pi_4$ — Supervisor Recovery}
 
@@ -80,7 +80,7 @@ If $f(C) = incomplete$, invoke one of:
 
 Any of these closes $\Pi_4$. The choice depends on product requirements.
 
-\textbf{Status:} ❌ Not implemented.
+\textbf{Status:} Not implemented.
 
 \subsection*{Responsibility Boundary}
 

@@ -80,28 +80,52 @@ The `docker-manager` subcommand exposes a full suite of orchestration options:
 | Option | Description |
 |---|---|
 | `--mode up` | Start the stack (default) |
-| `--mode down` | Stop the stack |
-| `--with-ollama` | Include the Ollama GPU inference service |
+| `--mode down_only` | Stop the stack |
+| `--mode build` | Build images only |
+| `--mode both` | Build then start |
+| `--mode logs` | Show service logs |
+| `--with-ollama` | Start external Ollama container |
 | `--ollama-gpu` | Enable GPU passthrough for Ollama |
 | `--no-cache` | Force rebuild without Docker cache |
 | `--build-before-up` | Build images before starting |
 | `--force-recreate` | Recreate all containers |
-| `--nuke` | Stop, remove containers and volumes |
+| `--nuke` | Destroy all stack data — requires typed confirmation |
 | `--services` | Start specific services only |
 | `--exclude` / `-x` | Exclude specific services |
-| `--follow` / `-f` | Follow log output after start |
+| `--down` | Stop before starting |
+| `--clear-volumes` / `-v` | Remove volumes on down |
+| `--attached` / `-a` | Run in foreground |
+| `--follow` / `-f` | Follow log output |
 | `--tail` | Number of log lines to tail |
-| `--verbose` / `--debug` | Verbose output |
+| `--timestamps` / `-t` | Show timestamps in logs |
+| `--no-log-prefix` | Omit service name prefix in logs |
+| `--tag` | Tag built images with a custom label |
+| `--parallel` | Build images in parallel |
+| `--verbose` / `--debug` | Enable debug logging |
+| `--debug-cache` | Run Docker cache diagnostics |
 
-**4. Provision your admin credentials.**
+**4. Update configuration variables.**
 
 ```bash
-platform-api bootstrap-admin bootstrap-admin \
-  --email "admin@example.com" \
-  --name "Default Admin"
+# Set a single variable
+platform-api docker-manager configure --set HF_TOKEN=hf_abc123
+
+# Interactive mode
+platform-api docker-manager configure --interactive
 ```
 
-> Note: `bootstrap-admin` appears twice — the first is the command group, the second is the subcommand. This is intentional — it distinguishes the core CLI from the platform CLI (`pdavid`) so development teams always know which layer they are operating on.
+**5. Provision your admin credentials.**
+
+```bash
+platform-api docker-manager bootstrap-admin
+```
+
+Or with an explicit database URL:
+
+```bash
+platform-api docker-manager bootstrap-admin \
+  --db-url "mysql+pymysql://api_user:password@localhost:3307/entities_db"
+```
 
 Expected output:
 
@@ -119,7 +143,44 @@ Expected output:
 
 > Store this key immediately. It is shown exactly once and cannot be recovered.
 
-**5. Provision your first user.**
+---
+
+## Lost Your Admin Key?
+
+Admin keys are shown exactly once and are not stored in plain text. If you have lost yours, you must delete the existing key record and regenerate it.
+
+**1. Connect to the running MySQL container.**
+
+```bash
+docker exec -it my_mysql_cosmic_catalyst mysql -u api_user -p entities_db
+```
+
+**2. Find the existing admin key prefix.**
+
+```sql
+SELECT prefix, key_name, created_at FROM api_keys;
+```
+
+**3. Delete the existing admin key.**
+
+```sql
+DELETE FROM api_keys WHERE prefix = 'ad_xxxxx';
+EXIT;
+```
+
+**4. Re-run bootstrap-admin to generate a new key.**
+
+```bash
+platform-api docker-manager bootstrap-admin
+```
+
+The new key will be printed once. Copy it immediately.
+
+> This operation only deletes the API key record — it does not delete the admin user or any associated data.
+
+---
+
+**6. Provision your first user.**
 
 ```python
 import os

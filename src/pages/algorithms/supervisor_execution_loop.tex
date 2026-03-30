@@ -1,10 +1,18 @@
+---
+title: Supervisor Execution Loop
+category: algorithms
+slug: supervisor_execution_loop
+nav_order: 17
+status: current
+---
+
 \section{Supervisor Execution Loop (SEL)}
 
 \begin{enumerate}
 
-\item update\_scratchpad(📌 STRATEGY)
+\item \texttt{update\_scratchpad([STRATEGY])}
 
-\item delegate\_research\_task()
+\item \texttt{delegate\_research\_task()}
 
 \item Upon worker return:
 \[
@@ -14,8 +22,8 @@ read\_scratchpad()
 \item Evaluate:
 
 \begin{itemize}
-    \item If ❓ or ⚠️ exist → redelegate
-    \item If all required fields = ✅ → synthesize
+    \item If [unresolved] or [warning] entries exist — redelegate
+    \item If all required fields = [verified] — synthesize
 \end{itemize}
 
 \item Final Synthesis:

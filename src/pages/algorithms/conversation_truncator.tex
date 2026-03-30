@@ -1,109 +1,73 @@
-\documentclass[11pt]{article}
-
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{amsthm}
-\usepackage{geometry}
-\geometry{margin=1in}
-
-\title{Recency-Preserving Constrained Context Truncation (RP-CCT)}
-\author{}
-\date{}
-
-\begin{document}
-
-\maketitle
+---
+title: Recency-Preserving Constrained Context Truncation
+category: algorithms
+slug: conversation_truncator
+nav_order: 8
+status: current
+---
 
 \section{Problem Definition}
 
 Let
 
-\[
-M = [m_1, m_2, \dots, m_n]
-\]
+\[ M = [m_1, m_2, \dots, m_n] \]
 
-be an ordered sequence of messages.
+be an ordered sequence of messages. Let
 
-Let
+\[ C : M \rightarrow \mathbb{N} \]
 
-\[
-C : M \rightarrow \mathbb{N}
-\]
-
-be a token cost function.
-
-Let:
+be a token cost function. Let:
 
 \begin{itemize}
-    \item $W \in \mathbb{N}$ be the maximum context window,
-    \item $\alpha \in (0,1]$ be a threshold percentage,
-    \item $P(m)$ be a predicate identifying protected messages.
+  \item $W \in \mathbb{N}$ be the maximum context window,
+  \item $\alpha \in (0,1]$ be a threshold percentage,
+  \item $P(m)$ be a predicate identifying protected messages.
 \end{itemize}
 
 Define the effective budget:
 
-\[
-B = \left\lfloor W \cdot \alpha \right\rfloor
-\]
+\[ B = \left\lfloor W \cdot \alpha \right\rfloor \]
 
 \section{Objective}
 
 Find a subsequence $M' \subseteq M$ such that:
 
 \begin{enumerate}
-    \item \textbf{Budget Constraint}
-    \[
-    \sum_{m \in M'} C(m) \leq B
-    \]
+  \item \textbf{Budget Constraint}
+  \[ \sum_{m \in M'} C(m) \leq B \]
 
-    \item \textbf{Protection Constraint}
-    \[
-    \forall m \in M, \; P(m) = \text{true} \Rightarrow m \in M'
-    \]
+  \item \textbf{Protection Constraint}
+  \[ \forall m \in M, \; P(m) = \text{true} \Rightarrow m \in M' \]
 
-    \item \textbf{Recency Maximization}
+  \item \textbf{Recency Maximization}
 
-    Among all valid subsets satisfying the above constraints, retain
-    the maximal suffix of non-protected messages.
+  Among all valid subsets satisfying the above constraints, retain
+  the maximal suffix of non-protected messages.
 
-    \item \textbf{Order Preservation}
+  \item \textbf{Order Preservation}
 
-    The relative ordering of messages in $M'$ must match their ordering in $M$.
+  The relative ordering of messages in $M'$ must match their ordering in $M$.
 \end{enumerate}
 
 \section{Algorithm}
 
 \subsection*{Step 1: Partition}
 
-Define:
+\[ S = \{ m \in M \mid P(m) = \text{true} \} \]
 
-\[
-S = \{ m \in M \mid P(m) = \text{true} \}
-\]
-
-\[
-U = \{ m \in M \mid P(m) = \text{false} \}
-\]
+\[ U = \{ m \in M \mid P(m) = \text{false} \} \]
 
 \subsection*{Step 2: Check Total Cost}
 
-Let:
-
-\[
-T_{total} = \sum_{m \in M} C(m)
-\]
+\[ T_{total} = \sum_{m \in M} C(m) \]
 
 If $T_{total} \leq B$, return $M$.
 
 \subsection*{Step 3: Compute Remaining Budget}
 
-\[
-T_S = \sum_{m \in S} C(m)
-\]
+\[ T_S = \sum_{m \in S} C(m) \]
 
-\[
-B_U = B - T_S
-\]
+\[ B_U = B - T_S \]
 
 If $B_U \leq 0$, return $S$.
 
@@ -111,41 +75,31 @@ If $B_U \leq 0$, return $S$.
 
 Iterate over $U$ from newest to oldest and construct $U'$ such that:
 
-\[
-U' = \text{maximal suffix of } U
-\]
+\[ U' = \text{maximal suffix of } U \]
 
 satisfying:
 
-\[
-\sum_{m \in U'} C(m) \leq B_U
-\]
+\[ \sum_{m \in U'} C(m) \leq B_U \]
 
 \subsection*{Step 5: Reconstruction}
 
-\[
-M' = S \cup U'
-\]
+\[ M' = S \cup U' \]
 
-Reorder $M'$ to preserve original ordering.
-
-Return $M'$.
+Reorder $M'$ to preserve original ordering. Return $M'$.
 
 \section{Complexity}
 
 Let $n = |M|$.
 
 \begin{itemize}
-    \item Partitioning: $O(n)$
-    \item Token aggregation: $O(n)$
-    \item Greedy scan: $O(n)$
+  \item Partitioning: $O(n)$
+  \item Token aggregation: $O(n)$
+  \item Greedy scan: $O(n)$
 \end{itemize}
 
 Total time complexity:
 
-\[
-O(n)
-\]
+\[ O(n) \]
 
 assuming constant-time access to $C(m)$.
 
@@ -154,12 +108,10 @@ assuming constant-time access to $C(m)$.
 This algorithm is:
 
 \begin{itemize}
-    \item Deterministic
-    \item Greedy
-    \item Constraint-based
-    \item Linear time
+  \item Deterministic
+  \item Greedy
+  \item Constraint-based
+  \item Linear time
 \end{itemize}
 
 It is optimal under the policy constraint that recency is strictly preferred.
-
-\end{document}

@@ -26,3 +26,4 @@ dist-ssr
 .vscode
 *.pem
 docker_auth.txt
+/run_sheets/

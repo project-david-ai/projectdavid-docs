@@ -1,9 +1,17 @@
+---
+title: Identity Rebinding State Transition
+category: algorithms
+slug: identity_rebinding_state_transition
+nav_order: 13
+status: current
+---
+
 \section{Identity Rebinding State Transition (IRST)}
 
 \subsection*{Problem}
 
-Conditionally replace the active assistant identity with an ephemeral supervisor identity,
-and rehydrate configuration state accordingly.
+Conditionally replace the active assistant identity with an ephemeral supervisor
+identity, and rehydrate configuration state accordingly.
 
 \subsection*{Precondition}
 
@@ -14,11 +22,7 @@ role \in \{Engineer, DeepResearchSupervisor\}
 \subsection*{State Before}
 
 \[
-S_0 =
-\begin{cases}
-assistant\_id = A_0 \\
-assistant\_config = C_0
-\end{cases}
+S_0 = \begin{cases} assistant\_id = A_0 \\ assistant\_config = C_0 \end{cases}
 \]
 
 \subsection*{Transition}
@@ -44,11 +48,7 @@ assistant\_config = C_0
 \subsection*{State After}
 
 \[
-S_1 =
-\begin{cases}
-assistant\_id = A_1 \\
-assistant\_config = C_1
-\end{cases}
+S_1 = \begin{cases} assistant\_id = A_1 \\ assistant\_config = C_1 \end{cases}
 \]
 
 \subsection*{Properties}

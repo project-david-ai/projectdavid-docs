@@ -1,3 +1,11 @@
+---
+title: Worker Final Report Retrieval Algorithm
+category: algorithms
+slug: worker_final_report_retrieval_algorithm
+nav_order: 18
+status: current
+---
+
 \section{Worker Final Report Retrieval Algorithm (WFRRA)}
 
 \subsection*{Problem}
@@ -17,7 +25,7 @@ Retry retrieval with bounded attempts.
 
 \begin{enumerate}
     \item Fetch messages from thread $T_w$
-    \item Iterate newest → oldest
+    \item Iterate newest to oldest
     \item Select first message satisfying:
     \[
     role = assistant
@@ -25,7 +33,7 @@ Retry retrieval with bounded attempts.
     \land content \neq \emptyset
     \]
     \item Exclude JSON array tool-call structures
-    \item If found → return content
+    \item If found — return content
 \end{enumerate}
 
 \item If none found after $N$ attempts:

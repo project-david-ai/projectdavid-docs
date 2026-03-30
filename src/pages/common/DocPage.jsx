@@ -4,7 +4,6 @@ import { useParams } from 'react-router-dom';
 import { pages } from '../../lib/docs.js';
 
 import MarkdownPage         from '../../components/MarkdownPage/MarkdownPage.jsx';
-import LatexPage            from '../../components/LatexPage/LatexPage.jsx';
 import ApiReferencePage     from './ApiReferencePage.jsx';
 import OpenApiReferencePage from './OpenApiReferencePage.jsx';
 
@@ -15,11 +14,17 @@ export default function DocPage() {
     return <div>404 - Invalid Page Route</div>;
   }
 
+
+
   const pageData = pages[slug];
 
   if (!pageData) {
     return <div>404 - Page Not Found for slug: {slug}</div>;
   }
+
+
+  console.log('path:', pageData.path);
+  console.log('content preview:', pageData.content?.slice(0, 200));
 
   if (pageData.frontmatter?.layout === 'openapi') {
     return <OpenApiReferencePage />;
@@ -29,20 +34,13 @@ export default function DocPage() {
     return <ApiReferencePage pageData={pageData} />;
   }
 
-  const isLatex = pageData.path?.endsWith('.tex') || pageData.path?.endsWith('.tla');
-
-  if (isLatex) {
-    return (
-      <LatexPage
-        content={pageData.content}
-      />
-    );
-  }
-
-  return (
-    <MarkdownPage
-      content={pageData.content}
-      category={pageData.frontmatter?.category}
-    />
-  );
+return (
+  <MarkdownPage
+    content={pageData.content}
+    category={pageData.frontmatter?.category}
+    status={pageData.frontmatter?.status}
+    path={pageData.path}
+    lifecycleStep={pageData.frontmatter?.lifecycle_step}
+  />
+);
 }

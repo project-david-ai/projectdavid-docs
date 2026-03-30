@@ -135,6 +135,13 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
+.markdown-body svg {
+  display: block;
+  margin: 0 auto;
+}
+
+
+
 /* ============================================================
    Mobile fallback: contain every block inside the viewport
    ============================================================ */

@@ -1,0 +1,45 @@
+.lifecycle-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  margin: 0 0 2rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border-tertiary);
+  border-radius: 8px;
+  background: var(--color-background-secondary);
+}
+
+.lifecycle-bar__item {
+  display: flex;
+  align-items: center;
+}
+
+.lifecycle-bar__step {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.15s, background 0.15s;
+}
+
+.lifecycle-bar__step:hover {
+  color: var(--color-text-primary);
+  background: var(--color-background-tertiary);
+}
+
+.lifecycle-bar__step--active {
+  background: #EEEDFE;
+  color: #3C3489;
+  font-weight: 500;
+}
+
+.lifecycle-bar__arrow {
+  font-size: 0.7rem;
+  color: var(--color-text-tertiary);
+  padding: 0 0.15rem;
+  user-select: none;
+}

@@ -2,164 +2,154 @@
 title: Function Calls
 category: sdk
 slug: function-calling-and-tool-execution
+lifecycle_step: tool_calls
 nav_order: 12
 ---
 
+# Function Calling
 
-# Function Calling and Tool Execution (Unified Loop)
+The SDK implements a unified event loop for tool use. You write one iterator — the SDK handles turn management, tool submission, and resumption transparently.
 
-## Overview
+## Define tools on an assistant
 
-Most examples online show a "Stop-and-Go" approach to function calling: stream text, stop, run tool, start a new stream.
-*Entities V1* simplifies this with a **Unified Event Loop**.
+Tools are defined at assistant creation time as a JSON schema array.
 
-The SDK manages the state transitions for you. You use a **single iterator** that:
+```python
+from projectdavid import Entity
 
-1.  Streams initial thought/content.
-2.  Pauses to yield a `ToolCallRequestEvent` when action is needed.
-3.  Automatically submits your tool's result back to the model.
-4.  Resumes streaming the final answer immediately within the same loop.
+client = Entity()
 
----
+assistant = client.assistants.create_assistant(
+    name="Flight Assistant",
+    instructions="You are a helpful assistant.",
+    tools=[
+        {
+            "type": "function",
+            "function": {
+                "name": "get_flight_times",
+                "description": "Returns departure and arrival times for a given route.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "departure": {"type": "string", "description": "Origin airport code."},
+                        "arrival":   {"type": "string", "description": "Destination airport code."},
+                    },
+                    "required": ["departure", "arrival"],
+                },
+            },
+        }
+    ],
+)
+```
 
-## Prerequisite
+To inspect tool definitions on an existing assistant:
 
-Please read the definition of tool schemas and function calling here:
+```python
+assistant = client.assistants.retrieve_assistant(assistant_id="asst_abc123")
+print(assistant.tools)
+```
 
-[tools_definition.md](/docs/tools_definition.md)
+## Implement a tool handler
 
----
+A tool handler is a plain Python function that receives the tool name and arguments dict and returns a string.
+
+```python
+import json
+
+def get_flight_times(tool_name: str, arguments: dict) -> str:
+    return json.dumps({
+        "departure": arguments.get("departure"),
+        "arrival":   arguments.get("arrival"),
+        "duration":  "4h 30m",
+    })
+
+TOOL_REGISTRY = {
+    "get_flight_times": get_flight_times,
+}
+```
+
+## Run the unified event loop
 
 ```python
 import os
 import json
-from projectdavid import Entity
-from projectdavid.events import ContentEvent, ToolCallRequestEvent
+from projectdavid import Entity, ContentEvent, ToolCallRequestEvent
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# 1. Initialize Client
-client = Entity()
+client = Entity(
+    base_url=os.getenv("BASE_URL", "http://localhost:9000"),
+    api_key=os.getenv("ENTITIES_API_KEY"),
+)
 
-# -----------------------------------------
-# Tool Logic & Registry
-#
-# Tool execution is a runtime responsibility.
-# We map tool names (from LLM) to Python functions.
-# -----------------------------------------
-def get_flight_times(tool_name, arguments):
-    """Actual logic to fetch data."""
-    print(f"\n[Runtime] Fetching flights for {arguments.get('departure')}...")
-    return json.dumps({
-        "status": "success",
-        "departure": "10:00 AM PST",
-        "arrival": "06:30 PM EST",
-        "duration": "4h 30m"
-    })
-
-TOOL_REGISTRY = {
-    "get_flight_times": get_flight_times
-}
-
-
-# ----------------------------------------------------
-# 2. Setup: Thread, Message, Run
-# ----------------------------------------------------
-assistant_id = "plt_ast_9fnJT01VGrK4a9fcNr8z2O"
 thread = client.threads.create_thread()
 
 message = client.messages.create_message(
     thread_id=thread.id,
+    assistant_id=assistant.id,
     role="user",
-    content="Please fetch me the flight times between LAX and NYC, JFK",
-    assistant_id=assistant_id,
+    content="What are the flight times from LAX to JFK?"
 )
 
-run = client.runs.create_run(assistant_id=assistant_id, thread_id=thread.id)
+run = client.runs.create_run(
+    assistant_id=assistant.id,
+    thread_id=thread.id
+)
 
-# ----------------------------------------------------
-# 3. Unified Stream Setup
-# ----------------------------------------------------
 stream = client.synchronous_inference_stream
 stream.setup(
-    user_id=os.getenv("ENTITIES_USER_ID"),
     thread_id=thread.id,
-    assistant_id=assistant_id,
+    assistant_id=assistant.id,
     message_id=message.id,
     run_id=run.id,
     api_key=os.getenv("HYPERBOLIC_API_KEY"),
 )
 
-print("Stream started...")
+for event in stream.stream_events(model="hyperbolic/deepseek-ai/DeepSeek-V3"):
 
-# ----------------------------------------------------
-# 4. Single Event Loop (Handles Turns 1..N)
-# 
-# The generator yields events for the ENTIRE interaction.
-# It pauses only when it needs YOU to execute a tool.
-# ----------------------------------------------------
-try:
-    for event in stream.stream_events( 
-        model="hyperbolic/deepseek-ai/DeepSeek-V3"
-    ):
-        
-        # A. Handle Standard Content (Thoughts/Answers)
-        if isinstance(event, ContentEvent):
-            print(event.content, end="", flush=True)
+    if isinstance(event, ContentEvent):
+        print(event.content, end="", flush=True)
 
-        # B. Handle Tool Requests
-        elif isinstance(event, ToolCallRequestEvent):
-            print(f"\n[SDK] Tool Call Detected: {event.tool_name}")
-
-            # 1. Lookup function in registry
-            handler = TOOL_REGISTRY.get(event.tool_name)
-
-            if handler:
-                # 2. Execute. 
-                # The SDK pauses here, executes the function, submits the result, 
-                # and silenty triggers the model to resume generating.
-                event.execute(handler) 
-            else:
-                print(f"[!] Unknown tool requested: {event.tool_name}")
-
-except Exception as e:
-    print(f"\nError during stream: {e}")
-
-print("\n\nDone.")
+    elif isinstance(event, ToolCallRequestEvent):
+        handler = TOOL_REGISTRY.get(event.tool_name)
+        if handler:
+            event.execute(handler)
+        else:
+            print(f"Unknown tool: {event.tool_name}")
 ```
 
----
+The loop runs for as many turns as needed. When `event.execute(handler)` is called the SDK submits the result and the generator resumes automatically.
 
-## Example Console Output
+## Error recovery
 
-```text
-Stream started...
-[SDK] Tool Call Detected: get_flight_times
+If a handler raises an exception, the SDK catches it, submits the error as tool output, and the model attempts to recover. No special handling required on your end.
 
-[Runtime] Fetching flights for LAX...
+```python
+ATTEMPTS = 0
 
-The flight from **Los Angeles (LAX)** to **New York (JFK)** has the following details:
-
-- **Flight Duration**: 4 hours and 30 minutes
-- **Departure Time**: 10:00 AM PST
-- **Arrival Time**: 06:30 PM EST
-
-Done.
+def get_flight_times(tool_name: str, arguments: dict) -> str:
+    global ATTEMPTS
+    ATTEMPTS += 1
+    if ATTEMPTS == 1:
+        raise Exception("Database timeout — please retry.")
+    return json.dumps({"departure": "10:00 AM", "arrival": "06:30 PM"})
 ```
 
----
+On the first call the SDK catches the exception and submits the error to the model. The model retries. On the second call the handler succeeds and the final answer is generated.
 
-## Lifecycle Summary
+## How it works
 
-The *Entities* SDK implements a **Recursive Turn** pattern:
+| Step | What happens |
+|---|---|
+| 1 | `stream_events` yields `ContentEvent` tokens as the model thinks. |
+| 2 | When the model calls a tool, a `ToolCallRequestEvent` is yielded. |
+| 3 | You call `event.execute(handler)`. The SDK invokes your function. |
+| 4 | The SDK submits the result to the API and triggers the next turn. |
+| 5 | The generator resumes, yielding the model's final `ContentEvent` tokens. |
 
-1.  **Bind:** You bind the client (`bind_clients`), giving the stream permission to manage runs internally.
-2.  **Detection:** The stream yields a `ToolCallRequestEvent`.
-3.  **Execution:** You call `event.execute(handler)`.
-    *   The SDK invokes your Python function.
-    *   The SDK submits the result to the API.
-    *   The SDK *silently* triggers the next generation step.
-4.  **Resumption:** The `for` loop continues immediately, now yielding the `ContentEvent` chunks for the final answer.
+## Notes
 
-The developer writes one loop. The SDK handles the round-trips.
+- Tool schemas must conform to JSON Schema. The SDK validates arguments before execution and intercepts invalid calls automatically.
+- `TOOL_REGISTRY` is a plain dict — add as many tools as needed.
+- `stream_events` defaults to `max_turns=10`. Increase for complex multi-step tool chains.

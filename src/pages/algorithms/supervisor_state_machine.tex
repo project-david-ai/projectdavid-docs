@@ -1,11 +1,32 @@
+---
+title: Supervisor State Machine
+category: algorithms
+slug: supervisor_state_machine
+nav_order: 15
+status: current
+---
+
 \section{Supervisor State Machine}
 
-Idle → StrategyUpdate
-StrategyUpdate → Delegating
-Delegating → AwaitingWorker
-AwaitingWorker → Evaluating
-Evaluating → Delegating \quad (if incomplete)
-Evaluating → Synthesizing \quad (if complete)
-Synthesizing → Terminated
-
+\[
+Idle \rightarrow StrategyUpdate
+\]
+\[
+StrategyUpdate \rightarrow Delegating
+\]
+\[
+Delegating \rightarrow AwaitingWorker
+\]
+\[
+AwaitingWorker \rightarrow Evaluating
+\]
+\[
+Evaluating \rightarrow Delegating \quad \textit{(if incomplete)}
+\]
+\[
+Evaluating \rightarrow Synthesizing \quad \textit{(if complete)}
+\]
+\[
+Synthesizing \rightarrow Terminated
+\]
 

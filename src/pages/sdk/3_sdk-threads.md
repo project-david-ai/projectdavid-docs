@@ -2,41 +2,60 @@
 title: Threads
 category: sdk
 slug: sdk-threads
+lifecycle_step: create_thread
 nav_order: 3
 ---
 
-
-
 # Threads
 
-## Overview
+A thread is a conversation container. It holds the message history between a user and an assistant and persists across multiple interactions.
 
-A thread represents the conversation dialogue between a user and an assistant, providing a coherent data structure for conversation state management.
-
-Multiple assistants can access the same thread, enabling seamless conversation continuity.
-Threads facilitate ready-to-use conversation context, making it easier to manage complex interactions.
-
-
-**Thread operations**
+## Create a thread
 
 ```python
 from projectdavid import Entity
 
 client = Entity()
 
-user = client.users.create_user(name='My test user')
-
 thread = client.threads.create_thread()
-print(thread.id)
-
-user_threads = client.threads.list_threads(user_id='your_user_id')
-
-print(user_threads)
-
-# Delete a thread
-
-client.threads.delete_thread(thread_id=thread.id)
-
+print(thread.id)  # thread_abc123
 ```
 
 
+## Retrieve a thread
+
+```python
+thread = client.threads.retrieve_thread(thread_id="thread_abc123")
+print(thread.id)
+```
+
+## Update a thread
+
+```python
+thread = client.threads.update_thread(
+    thread_id="thread_abc123",
+    meta_data={"status": "resolved"}
+)
+```
+
+## List threads for a user
+
+```python
+threads = client.threads.list_threads(user_id="user_abc123")
+print(threads)  # ["thread_abc123", "thread_def456"]
+```
+
+## Delete a thread
+
+```python
+result = client.threads.delete_thread(thread_id="thread_abc123")
+print(result.deleted)  # True
+```
+
+Returns `None` if the thread does not exist.
+
+## Notes
+
+- Multiple assistants can share the same thread.
+- Metadata is arbitrary key/value and can be updated at any time.
+- Deleting a thread is permanent.

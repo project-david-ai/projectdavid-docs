@@ -2,67 +2,93 @@
 title: Runs
 category: sdk
 slug: sdk-runs
+lifecycle_step: create_run
 nav_order: 5
 ---
 
 # Runs
 
-## Overview
+A run represents a single execution of an assistant against a thread. Creating a run triggers the assistant to process the thread's messages and produce a response.
 
-Runs track the state of nine steps within the user prompt and assistant response life cycle. Creating and processing a run is the final stage in establishing state information for each message and response from the assistant. This system provides a flexible interface for programmatic access, making it adaptable for any type of LLM project.
+## Run lifecycle
 
+| Status | Description |
+|---|---|
+| `queued` | Run created, waiting to start. |
+| `in_progress` | Assistant is actively processing. |
+| `completed` | Assistant finished successfully. |
+| `requires_action` | Assistant is waiting for tool output. |
+| `cancelled` | Run was successfully cancelled. |
+| `cancelling` | Cancellation requested but not yet confirmed. |
+| `failed` | Run failed. See `last_error` for details. |
+| `expired` | Run exceeded its time limit. |
+| `incomplete` | Run ended due to token limits. |
 
-
-
-| **Status**         | **Definition**                                                                                                                                                                                                                                                                 |
-|--------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **queued**         | When Runs are first created or when you complete the `required_action`, they are moved to a queued status. They should almost immediately move to `in_progress`.                                                                                                                |
-| **in_progress**    | While in progress, the Assistant uses the model and tools to perform steps. You can view progress being made by the Run by examining the Run Steps.                                                                                                                             |
-| **completed**      | The Run successfully completed! You can now view all Messages the Assistant added to the Thread, and all the steps the Run took. You can also continue the conversation by adding more user Messages to the Thread and creating another Run.                                  |
-| **requires_action**| When using the Function calling tool, the Run will move to a `requires_action` state once the model determines the names and arguments of the functions to be called. You must then run those functions and submit the outputs before the run proceeds.                           |
-| **expired**        | This happens when the function calling outputs were not submitted before `expires_at` and the run expires. Additionally, if the run takes too long to execute and goes beyond the time stated in `expires_at`, the system will expire the run.                                 |
-| **cancelling**     | You can attempt to cancel an `in_progress` run using the Cancel Run endpoint. Once the attempt to cancel succeeds, the status of the Run moves to `cancelled`. Cancellation is attempted but not guaranteed.                                                                    |
-| **cancelled**      | Run was successfully cancelled.                                                                                                                                                                                                                                                |
-| **failed**         | You can view the reason for the failure by looking at the `last_error` object in the Run. The timestamp for the failure will be recorded under `failed_at`.                                                                                                                    |
-| **incomplete**     | Run ended due to `max_prompt_tokens` or `max_completion_tokens` being reached. You can view the specific reason by looking at the `incomplete_details` object in the Run.                                                                                                       |
-
----
-
-
-**Create a Run**
+## Create a run
 
 ```python
-
 from projectdavid import Entity
 
 client = Entity()
 
+run = client.runs.create_run(
+    assistant_id="asst_abc123",
+    thread_id="thread_abc123"
+)
 
-
-run = client.run_service.create_run(thread_id='some_thread_id',
-                                    assistant_id='some_assistant_id')
-
-
-
-
+print(run.id)     # run_abc123
+print(run.status) # queued
 ```
----
 
-**Retrieve a Run**
+Optional parameters:
+
 ```python
-print(get_run.dict())
-
-id='run_t16pOsi0Y2a3PXuPjcrjko' assistant_id='user_2uMMGBpU4H7dcZieeOahNv' cancelled_at=None completed_at=None created_at=1726617356 expires_at=1726620956 failed_at=None incomplete_details=None instructions='' last_error=None max_completion_tokens=1000 max_prompt_tokens=500 meta_data={} model='gpt-4' object='run' parallel_tool_calls=False required_action=None response_format='text' started_at=None status='queued' thread_id='thread_Ww3UGvvKkrxFfHD1hNFQVX' tool_choice='none' tools=[] truncation_strategy={} usage=None temperature=1.0 top_p=1.0 tool_resources={} actions=[]
-{'id': 'run_xsDpDica9weXH4eSfsRcPd', 'assistant_id': 'user_0D1D7j6UkZUsa9Gm7GdkU1', 'cancelled_at': None, 'completed_at': None, 'created_at': 1726620075, 'expires_at': 1726623675, 'failed_at': None, 'incomplete_details': None, 'instructions': '', 'last_error': None, 'max_completion_tokens': 1000, 'max_prompt_tokens': 500, 'meta_data': {}, 'model': 'gpt-4', 'object': 'run', 'parallel_tool_calls': False, 'required_action': None, 'response_format': 'text', 'started_at': None, 'status': 'queued', 'thread_id': 'thread_VaTTuMUa8EHtkr60hZGkju', 'tool_choice': 'none', 'tools': [], 'truncation_strategy': {}, 'usage': None, 'temperature': 1.0, 'top_p': 1.0, 'tool_resources': {}, 'actions': []}
-
+run = client.runs.create_run(
+    assistant_id="asst_abc123",
+    thread_id="thread_abc123",
+    model="gpt-4",
+    instructions="Be concise.",
+    temperature=0.7,
+    top_p=1.0,
+)
 ```
----
 
-**Cancel a Run**
+## Retrieve a run
+
 ```python
-
-# Attempt to cancel the run
-client.run_service.cancel_run(run_id=run_id)
-
+run = client.runs.retrieve_run(run_id="run_abc123")
+print(run.status)
 ```
 
+## Cancel a run
+
+```python
+run = client.runs.cancel_run(run_id="run_abc123")
+print(run.status)  # cancelling
+```
+
+## List runs in a thread
+
+```python
+runs = client.runs.list_runs(
+    thread_id="thread_abc123",
+    limit=20,
+    order="asc"
+)
+
+for run in runs.data:
+    print(run.id, run.status)
+```
+
+## Delete a run
+
+```python
+result = client.runs.delete_run(run_id="run_abc123")
+```
+
+
+## Notes
+
+- Runs expire after 1 hour by default.
+- `temperature` and `top_p` can be set per-run to override assistant defaults.
+- `model` defaults to `gpt-4` if not specified.

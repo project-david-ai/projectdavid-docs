@@ -3,6 +3,7 @@ title: Quick Start
 category: sdk
 slug: sdk-quick-start
 nav_order: 1
+# nav_exclude: true
 ---
 
 # Quick Start
@@ -13,25 +14,9 @@ guide gets you from zero to a streaming response in under 5 minutes.
 
 ---
 
-## Prerequisites
 
-```bash
-pip install projectdavid python-dotenv
-```
+The following assumes that you can reach a running instance of [Project David Core](/docs/core-overview) or [Project David Platform](/docs/platform-overview).
 
-You need a running Project David instance. If you do not have one yet:
-
-- **Fastest path** — [Project David Platform](/docs/platform-overview) — `pip install projectdavid-platform && pdavid --mode up`
-- **From source** — [Project David Core](/docs/core-overview)
-
-Create a `.env` file with your credentials:
-
-```bash
-BASE_URL=http://localhost:80          # URL of your running platform instance
-ENTITIES_API_KEY=ea_your_user_key    # Issued after bootstrapping
-ENTITIES_USER_ID=user_your_id        # Your user ID
-PROVIDER_API_KEY=your_provider_key   # Only needed for hosted providers
-```
 
 ---
 

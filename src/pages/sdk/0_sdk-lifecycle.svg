@@ -1,0 +1,136 @@
+<!--
+---
+title: Request Lifecycle
+category: sdk
+slug: sdk-lifecycle
+nav_order: 0
+---
+-->
+<svg width="100%" viewBox="0 0 680 730" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <style>
+    text { font-family: Georgia, serif; }
+    .th { font-size: 14px; font-weight: 500; fill: #2C2C2A; }
+    .ts { font-size: 12px; font-weight: 400; fill: #5F5E5A; }
+    .title { font-size: 20px; font-weight: 500; fill: #2C2C2A; }
+    .subtitle { font-size: 13px; font-weight: 400; fill: #888780; }
+    .c-gray rect { fill: #F1EFE8; stroke: #5F5E5A; }
+    .c-gray text { fill: #2C2C2A; }
+    .c-purple rect { fill: #EEEDFE; stroke: #534AB7; }
+    .c-purple text { fill: #3C3489; }
+    .c-teal rect { fill: #E1F5EE; stroke: #0F6E56; }
+    .c-teal text { fill: #085041; }
+    .c-gray-pill rect { fill: #D3D1C7; stroke: #888780; }
+    .c-gray-pill text { fill: #444441; }
+    a { cursor: pointer; }
+    a:hover rect { opacity: 0.8; }
+  </style>
+</defs>
+
+<!-- Header -->
+<text class="title" x="340" y="36" text-anchor="middle">Request lifecycle</text>
+<text class="subtitle" x="340" text-anchor="middle">
+  <tspan x="340" dy="0" y="58">The complete request lifecycle, from assistant creation to streamed inference.</tspan>
+  <tspan x="340" dy="18">Click any step to jump to its documentation.</tspan>
+</text>
+
+<!-- 1. create_assistant -->
+<a href="/docs/sdk-assistants">
+  <g class="c-gray">
+    <rect x="230" y="94" width="220" height="44" rx="8" stroke-width="0.5"/>
+    <text class="th" x="340" y="116" text-anchor="middle" dominant-baseline="central">create_assistant()</text>
+  </g>
+</a>
+
+<line x1="340" y1="138" x2="340" y2="158" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+<!-- 2. create_thread -->
+<a href="/docs/sdk-threads">
+  <g class="c-gray">
+    <rect x="230" y="178" width="220" height="44" rx="8" stroke-width="0.5"/>
+    <text class="th" x="340" y="200" text-anchor="middle" dominant-baseline="central">create_thread()</text>
+  </g>
+</a>
+
+<line x1="340" y1="222" x2="340" y2="242" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+<!-- 3. create_message -->
+<a href="/docs/sdk-messages">
+  <g class="c-gray">
+    <rect x="230" y="262" width="220" height="44" rx="8" stroke-width="0.5"/>
+    <text class="th" x="340" y="284" text-anchor="middle" dominant-baseline="central">create_message()</text>
+  </g>
+</a>
+
+<line x1="340" y1="306" x2="340" y2="326" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+<!-- 4. create_run -->
+<a href="/docs/sdk-runs">
+  <g class="c-gray">
+    <rect x="230" y="346" width="220" height="44" rx="8" stroke-width="0.5"/>
+    <text class="th" x="340" y="368" text-anchor="middle" dominant-baseline="central">create_run()</text>
+  </g>
+</a>
+
+<!-- Boundary -->
+<line x1="340" y1="390" x2="340" y2="406" stroke="#888780" stroke-width="1.5"/>
+<line x1="90" y1="414" x2="590" y2="414" stroke="#B4B2A9" stroke-width="0.5" stroke-dasharray="3 3"/>
+<text class="ts" x="340" y="414" text-anchor="middle" dominant-baseline="central" opacity="0.5">inference</text>
+<line x1="340" y1="423" x2="340" y2="450" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+<!-- 5. stream_events -->
+<a href="/docs/sdk-inference">
+  <g class="c-purple">
+    <rect x="230" y="450" width="220" height="44" rx="8" stroke-width="0.5"/>
+    <text class="th" x="340" y="472" text-anchor="middle" dominant-baseline="central">stream_events(model)</text>
+  </g>
+</a>
+
+<!-- T-junction -->
+<line x1="340" y1="494" x2="340" y2="502" stroke="#888780" stroke-width="1.5"/>
+<line x1="165" y1="502" x2="535" y2="502" stroke="#888780" stroke-width="1.5"/>
+<line x1="165" y1="502" x2="165" y2="526" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="535" y1="502" x2="535" y2="526" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="ts" x="165" y="514" text-anchor="middle" dominant-baseline="central" opacity="0.5">content</text>
+<text class="ts" x="535" y="514" text-anchor="middle" dominant-baseline="central" opacity="0.5">tool call</text>
+
+<!-- 6. ContentEvent -->
+<a href="/docs/sdk-inference">
+  <g class="c-purple">
+    <rect x="80" y="526" width="170" height="44" rx="8" stroke-width="0.5"/>
+    <text class="th" x="165" y="548" text-anchor="middle" dominant-baseline="central">ContentEvent</text>
+  </g>
+</a>
+
+<!-- 7. ToolCallRequestEvent -->
+<a href="/docs/function-calling-and-tool-execution">
+  <g class="c-teal">
+    <rect x="430" y="526" width="210" height="44" rx="8" stroke-width="0.5"/>
+    <text class="th" x="535" y="548" text-anchor="middle" dominant-baseline="central">ToolCallRequestEvent</text>
+  </g>
+</a>
+
+<!-- ContentEvent terminal -->
+<line x1="165" y1="570" x2="165" y2="594" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+<g class="c-gray-pill">
+  <rect x="105" y="594" width="120" height="32" rx="16" stroke-width="0.5"/>
+  <text class="ts" x="165" y="610" text-anchor="middle" dominant-baseline="central">response</text>
+</g>
+
+<!-- 8. event.execute -->
+<line x1="535" y1="570" x2="535" y2="610" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+<a href="/docs/function-calling-and-tool-execution">
+  <g class="c-teal">
+    <rect x="430" y="610" width="210" height="44" rx="8" stroke-width="0.5"/>
+    <text class="th" x="535" y="632" text-anchor="middle" dominant-baseline="central">event.execute()</text>
+  </g>
+</a>
+
+<!-- Loop arrow -->
+<path d="M 535,654 L 535,668 L 636,668 L 636,470 L 452,470" fill="none" stroke="#888780" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+<text class="ts" x="641" y="570" dominant-baseline="central" opacity="0.5">loop</text>
+
+</svg>

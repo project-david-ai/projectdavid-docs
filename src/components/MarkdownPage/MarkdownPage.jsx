@@ -6,60 +6,40 @@ import { useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
 
 import CodePanel from '../CodePanel/CodePanel';
-import LatexPage from '../LatexPage/LatexPage';   // ✅ NEW
+import LatexPage from '../LatexPage/LatexPage';
+import LifecycleBar from '../LifecycleBar/LifecycleBar';
 import './markdown.css';
 
 mermaid.initialize({
   startOnLoad: false,
   theme: 'base',
-  flowchart: {
-    useMaxWidth: true,
-    htmlLabels: true,
-  },
+  flowchart: { useMaxWidth: true, htmlLabels: true },
 });
 
 function MermaidBlock({ chart }) {
   const ref = useRef(null);
-
   useEffect(() => {
     if (ref.current) {
       mermaid
-        .render(
-          'mermaid-' + Math.random().toString(36).slice(2),
-          chart
-        )
-        .then(({ svg }) => {
-          ref.current.innerHTML = svg;
-        });
+        .render('mermaid-' + Math.random().toString(36).slice(2), chart)
+        .then(({ svg }) => { ref.current.innerHTML = svg; });
     }
   }, [chart]);
-
   return <div className="mermaid" ref={ref} />;
 }
 
-export default function MarkdownPage({ content, category, path }) {
-  /* ---------------------------------------------------------
-     Detect document types
-     --------------------------------------------------------- */
-
+export default function MarkdownPage({ content, category, path, status, lifecycleStep }) {
   const isTex = path?.toLowerCase().endsWith('.tex');
   const isTla = path?.toLowerCase().endsWith('.tla');
-
-  /* ---------------------------------------------------------
-     1. Render LaTeX symbolically
-     --------------------------------------------------------- */
+  const isSvg = path?.toLowerCase().endsWith('.svg');
 
   if (isTex) {
     return (
       <div className={`markdown-body ${category ? `markdown-${category}` : ''}`}>
-        <LatexPage content={content} />
+        <LatexPage content={content} status={status} />
       </div>
     );
   }
-
-  /* ---------------------------------------------------------
-     2. Render TLA+ as source
-     --------------------------------------------------------- */
 
   if (isTla) {
     return (
@@ -69,44 +49,35 @@ export default function MarkdownPage({ content, category, path }) {
     );
   }
 
-  /* ---------------------------------------------------------
-     3. Standard Markdown rendering
-     --------------------------------------------------------- */
+  if (isSvg) {
+    return (
+      <div
+        className={`markdown-body ${category ? `markdown-${category}` : ''}`}
+        dangerouslySetInnerHTML={{ __html: content }}
+      />
+    );
+  }
 
   return (
     <div className={`markdown-body ${category ? `markdown-${category}` : ''}`}>
+      {lifecycleStep && <LifecycleBar currentStep={lifecycleStep} />}
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
           code({ node, inline, className = '', children, ...props }) {
             const match = /language-(\w+)/.exec(className || '');
             const language = match ? match[1] : 'plaintext';
-
-            const isBlock =
-              !inline && String(children).includes('\n');
+            const isBlock = !inline && String(children).includes('\n');
 
             if (!isBlock) {
-              return (
-                <code className={className} {...props}>
-                  {children}
-                </code>
-              );
+              return <code className={className} {...props}>{children}</code>;
             }
 
             if (language === 'mermaid') {
-              return (
-                <MermaidBlock
-                  chart={String(children).replace(/\n$/, '')}
-                />
-              );
+              return <MermaidBlock chart={String(children).replace(/\n$/, '')} />;
             }
 
-            return (
-              <CodePanel
-                snippet={String(children).replace(/\n$/, '')}
-                language={language}
-              />
-            );
+            return <CodePanel snippet={String(children).replace(/\n$/, '')} language={language} />;
           },
         }}
       >

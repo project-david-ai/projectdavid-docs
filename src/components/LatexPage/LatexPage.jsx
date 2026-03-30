@@ -30,6 +30,11 @@ function renderMath(text) {
 
 /* ── 2. Structure conversion (runs AFTER math so newlines are still intact) ── */
 function convertStructure(tex) {
+  // Strip LaTeX preamble if present
+  tex = tex.replace(/[\s\S]*?\\begin\{document\}/, '');
+  tex = tex.replace(/\\end\{document\}[\s\S]*$/, '');
+  tex = tex.replace(/\\maketitle/g, '');
+
   // Verbatim blocks → <pre><code> (must run BEFORE newline processing)
   tex = tex.replace(
     /\\begin\{verbatim\}([\s\S]*?)\\end\{verbatim\}/g,
@@ -86,7 +91,7 @@ function convertStructure(tex) {
 }
 
 /* ── Component ── */
-export default function LatexPage({ content }) {
+export default function LatexPage({ content, status }) {
   const html = useMemo(() => {
     const withMath = renderMath(content);
     return convertStructure(withMath);
@@ -94,7 +99,7 @@ export default function LatexPage({ content }) {
 
   return (
     <div
-      className="latex-body"
+      className={`latex-body${status ? ` status-${status}` : ''}`}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

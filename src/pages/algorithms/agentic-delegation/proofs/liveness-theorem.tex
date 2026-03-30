@@ -19,13 +19,13 @@ the hardening of $\Pi_1$ (premature synthesis guard).
 \subsection*{Dependencies and Current Status}
 
 \begin{itemize}
-  \item \textbf{DF} — Deadlock Freedom ✅ verified
-  \item \textbf{TB} — Bounded Termination ✅ verified ($D_S=200$, $T_W=1200\text{s}$)
-  \item \textbf{PC} — Probabilistic Convergence ✅ verified (under independence assumption)
-  \item \textbf{$\Pi_1$} — Supervisor Persistence ⚠️ soft
-  \item \textbf{$\Pi_2$} — Worker Liveness ✅ implemented
-  \item \textbf{$\Pi_3$} — Fair Scheduling ⚠️ infrastructure-dependent
-  \item \textbf{$\Pi_4$} — Supervisor Recovery ❌ not implemented
+  \item \textbf{DF} — Deadlock Freedom [verified]
+  \item \textbf{TB} — Bounded Termination [verified] ($D_S=200$, $T_W=1200\text{s}$)
+  \item \textbf{PC} — Probabilistic Convergence [verified] (under independence assumption)
+  \item \textbf{$\Pi_1$} — Supervisor Persistence [soft]
+  \item \textbf{$\Pi_2$} — Worker Liveness [implemented]
+  \item \textbf{$\Pi_3$} — Fair Scheduling [infrastructure-dependent]
+  \item \textbf{$\Pi_4$} — Supervisor Recovery [not implemented]
 \end{itemize}
 
 \subsection*{Theorem}
@@ -39,7 +39,7 @@ or explicitly invokes recovery — not a silent failure.
 
 \subsection*{Proof}
 
-\textbf{Step 1 — No starvation in $Awaiting$} ✅ \textit{holds today}
+\textbf{Step 1 — No starvation in $Awaiting$} [holds today]
 
 By $\Pi_2$ (\texttt{\_WORKER\_RUN\_TIMEOUT = 1200s}), every spawned worker reaches
 a terminal state within bounded time. The supervisor cannot idle indefinitely
@@ -47,7 +47,7 @@ in $Awaiting$:
 
 \[ \square \left( Awaiting \rightarrow \Diamond_{\leq 1200s}\ Evaluating \right) \]
 
-\textbf{Step 2 — Persistence through evaluation} ⚠️ \textit{soft today}
+\textbf{Step 2 — Persistence through evaluation} [soft today]
 
 By $\Pi_1$, whenever $f(C) = incomplete$ and $d < D_S$, the supervisor
 re-enters $Delegating$. This holds when the LLM follows \texttt{L4\_EXECUTION\_LOOP}
@@ -55,7 +55,7 @@ instructions. It breaks silently if the LLM synthesizes prematurely.
 
 Hardening $\Pi_1$ with a tool-call guard would make this step unconditional.
 
-\textbf{Step 3 — Convergence under retry} ✅ \textit{holds under independence assumption}
+\textbf{Step 3 — Convergence under retry} [holds under independence assumption]
 
 By $PC$, each delegation succeeds with probability $p > 0$.
 After at most $D_S = 200$ delegations:
@@ -64,7 +64,7 @@ After at most $D_S = 200$ delegations:
 
 This bound is optimistic if failures are correlated across a single model.
 
-\textbf{Step 4 — Recovery at depth bound} ❌ \textit{not implemented}
+\textbf{Step 4 — Recovery at depth bound} [not implemented]
 
 If all $D_S$ delegations fail, the current system yields a hard error.
 By $\Pi_4$ (proposed), the system would instead invoke a recovery policy —
@@ -73,7 +73,7 @@ partial synthesis, scope reduction, or escalation — preventing silent failure.
 Until $\Pi_4$ is implemented, $\Diamond\ \text{Success}$ does not hold
 at the supervisor boundary when all turns are exhausted.
 
-\textbf{Step 5 — No deadlock} ✅ \textit{holds today}
+\textbf{Step 5 — No deadlock} [holds today]
 
 By $DF$, $E = \emptyset$ at all reachable states.
 

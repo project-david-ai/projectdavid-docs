@@ -150,16 +150,28 @@ Requires NVIDIA GPU and nvidia-container-toolkit.
 ### With Sovereign Forge (training pipeline)
 
 ```bash
-# Training stack + Ray cluster + vLLM inference
+# Training stack + Ray cluster
 pdavid --mode up --training
 
-# Full sovereign stack — Ollama + vLLM + training
+# Full sovereign stack — Ollama + static vLLM + training
 pdavid --mode up --gpu --training
 ```
 
-> `--training` always starts vLLM alongside the training stack. Use `--gpu --training` to also include Ollama.
+> `--training` starts the training API, the Ray-based training worker, and the DeploymentSupervisor actor. It does **not** start a static vLLM container — instead, the DeploymentSupervisor dynamically spawns dedicated `pd_vllm_*` inference containers for each active deployment as models are activated via the SDK. Use `--gpu --training` if you also want Ollama and a static vLLM server running alongside.
 
 Requires NVIDIA GPU and nvidia-container-toolkit.
+
+---
+
+## How Inference Containers Are Spawned
+
+When `--training` is active, the `DeploymentSupervisor` Ray actor runs continuously inside the training worker. Every 20 seconds it queries the `inference_deployments` table and reconciles container state:
+
+- If a deployment is marked `pending` or its container has stopped, the supervisor spawns a new `pd_vllm_{deployment_id}` Docker container with the correct base model, LoRA adapter, and `tensor_parallel_size`.
+- Container IPs are written back to the ledger so the API can route inference requests to the correct instance.
+- Port conflicts are resolved automatically — any container holding the target port is evicted before the new one starts.
+
+This means vLLM instances come up and go down in response to SDK-driven deployment activations, not CLI flags.
 
 ---
 
@@ -189,6 +201,10 @@ Requires NVIDIA GPU and nvidia-container-toolkit.
 
 | Option | Description |
 |---|---|
+| `--training` | Start Sovereign Forge — training API, Ray worker, DeploymentSupervisor. Requires NVIDIA GPU |
+| `--gpu` | Start Ollama + static vLLM. Requires NVIDIA GPU |
+| `--ollama` | Start Ollama only. Requires NVIDIA GPU |
+| `--vllm` | Start static vLLM server only. Requires NVIDIA GPU |
 | `--force-recreate` | Recreate all containers |
 | `--pull` | Pull latest images before starting |
 | `--build-before-up` | Build before starting |

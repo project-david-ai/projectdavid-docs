@@ -4,10 +4,9 @@ import DocsSidebar from './components/SideBar/DocsSidebar';
 
 export default function DocsLayout() {
   return (
-    <div className="flex min-h-screen">
+    <div className="docs-layout">
       <DocsSidebar />
-      {/* Add the min-w-0 class here */}
-      <main className="flex-1 p-8 bg-white min-w-0">
+      <main className="docs-main">
         <Outlet />
       </main>
     </div>

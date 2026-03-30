@@ -5,18 +5,15 @@
   max-width: 960px;
   margin: 2.5rem auto;
   padding: 0 1rem;
-
   font-family: Inter, ui-sans-serif, system-ui;
   line-height: 1.65;
   color: #374151;
 }
 
-/* Paragraphs */
 .markdown-body p {
   color: #111827;
 }
 
-/* Headings */
 .markdown-body h1,
 .markdown-body h2,
 .markdown-body h3 {
@@ -26,7 +23,6 @@
   margin-bottom: 1rem;
 }
 
-/* Links */
 .markdown-body a {
   color: #3b82f6;
   text-decoration: none;
@@ -35,18 +31,16 @@
   text-decoration: underline;
 }
 
-/* ── Mermaid diagrams: fill column width and scale naturally ── */
+/* ── Mermaid ─────────────────────────────────────────────────── */
 .markdown-body .mermaid {
   width: 100%;
   overflow-x: auto;
 }
-
 .markdown-body .mermaid svg {
   width: 100% !important;
   height: auto !important;
   max-width: 100%;
 }
-
 .markdown-body .mermaid svg text {
   font-size: 16px !important;
   font-weight: 600 !important;
@@ -62,6 +56,14 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+/* ── SVG ─────────────────────────────────────────────────────── */
+.markdown-body svg {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}
+
 /* ── Tables ──────────────────────────────────────────────────── */
 .markdown-body table {
   width: 100%;
@@ -71,24 +73,19 @@
   overflow-x: auto;
   display: block;
 }
-
 .markdown-body thead tr {
   border-bottom: 1px solid #d1d5db;
 }
-
 .markdown-body tbody tr {
   border-bottom: 1px solid #f0f0f0;
   transition: background 0.12s ease;
 }
-
 .markdown-body tbody tr:last-child {
   border-bottom: none;
 }
-
 .markdown-body tbody tr:hover {
   background-color: #f8fafc;
 }
-
 .markdown-body th {
   padding: 0.6rem 1rem;
   text-align: left;
@@ -99,21 +96,16 @@
   color: #9ca3af;
   white-space: nowrap;
 }
-
 .markdown-body td {
   padding: 0.55rem 1rem;
   color: #374151;
   vertical-align: middle;
   line-height: 1.5;
 }
-
-/* Centred cells (emoji/status icon columns) */
 .markdown-body td:nth-child(n+4),
 .markdown-body th:nth-child(n+4) {
   text-align: center;
 }
-
-/* Code spans inside table cells (endpoint IDs etc.) */
 .markdown-body td code {
   font-size: 0.78rem;
   padding: 0.15em 0.45em;
@@ -123,7 +115,7 @@
   white-space: nowrap;
 }
 
-/* Provider section headings (## 🟢 Provider: ...) */
+/* ── Provider section headings ───────────────────────────────── */
 .markdown-providers h2 {
   font-size: 0.8rem;
   font-weight: 600;
@@ -135,18 +127,26 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
-.markdown-body svg {
-  display: block;
-  margin: 0 auto;
+/* ── Category-scoped overrides ───────────────────────────────── */
+.markdown-architecture { max-width: 1200px; }
+.markdown-architecture .mermaid { margin: 2rem 0; }
+
+.markdown-sdk { max-width: 860px; }
+.markdown-sdk code { font-size: 0.9rem; }
+
+.markdown-infrastructure h2 {
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.4rem;
 }
 
+.markdown-endpoints { max-width: 1080px; }
+.markdown-endpoints table { font-size: 0.9rem; width: 100%; }
+.markdown-endpoints th { background-color: #f1f5f9; color: #1e293b; font-weight: 600; }
 
+.markdown-providers { max-width: 1100px; }
 
-/* ============================================================
-   Mobile fallback: contain every block inside the viewport
-   ============================================================ */
-@media (max-width: 640px) {
-
+/* ── Mobile ──────────────────────────────────────────────────── */
+@media (max-width: 767px) {
   .markdown-body {
     width: 92vw;
     max-width: 92vw;
@@ -154,103 +154,31 @@
     padding: 0;
   }
 
-  .markdown-body pre,
-  .markdown-body table {
-    display: block;
+  .markdown-body pre {
+    overflow-x: auto;
     max-width: 100%;
-    overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
-
-  .markdown-body,
-  .markdown-body table,
-  .markdown-body code,
-  .markdown-body pre,
-  .markdown-body td,
-  .markdown-body th {
-    word-break: break-word;
-    white-space: pre-wrap;
-  }
-
-  /* Mermaid on mobile: allow horizontal scroll if truly too wide */
-  .markdown-body .mermaid {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .markdown-body .mermaid svg {
-    min-width: 480px; /* prevent over-compression on small screens */
-  }
-}
-
-/* ============================================================
-   Mobile tables
-   ============================================================ */
-@media (max-width: 640px) {
 
   .markdown-body table {
-    display: block;
-    width: auto;
-    max-width: none;
-    overflow-x: auto;
+    font-size: 0.82rem;
     -webkit-overflow-scrolling: touch;
-    border-collapse: collapse;
   }
 
   .markdown-body th,
   .markdown-body td {
-    white-space: pre-line;
-    word-break: break-word;
-    font-size: 0.9rem;
+    min-width: 80px;
+    padding: 0.5rem 0.75rem;
+    white-space: normal;
+    word-break: normal;
   }
-}
 
-/* ============================================================
-   Category-scoped overrides
-   Applied via .markdown-{category} on the wrapper div
-   ============================================================ */
+  .markdown-body th:first-child,
+  .markdown-body td:first-child {
+    min-width: 90px;
+  }
 
-/* Architecture — diagram-heavy pages, needs more breathing room */
-.markdown-architecture {
-  max-width: 1200px;
-}
-
-.markdown-architecture .mermaid {
-  margin: 2rem 0;
-}
-
-/* SDK — code-heavy pages, keep tight readable column */
-.markdown-sdk {
-  max-width: 860px;
-}
-
-.markdown-sdk code {
-  font-size: 0.9rem;
-}
-
-/* Infrastructure — mixed prose and code, default width is fine */
-.markdown-infrastructure h2 {
-  border-bottom: 1px solid #e5e7eb;
-  padding-bottom: 0.4rem;
-}
-
-/* Endpoints — API reference, slightly wider for param tables */
-.markdown-endpoints {
-  max-width: 1080px;
-}
-
-.markdown-endpoints table {
-  font-size: 0.9rem;
-  width: 100%;
-}
-
-.markdown-endpoints th {
-  background-color: #f1f5f9;
-  color: #1e293b;
-  font-weight: 600;
-}
-
-/* Providers — wide for model compatibility tables */
-.markdown-providers {
-  max-width: 1100px;
+  .markdown-body .mermaid svg {
+    min-width: 480px;
+  }
 }

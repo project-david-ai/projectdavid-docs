@@ -1,43 +1,60 @@
 /* ──────────────────────────────────────────────────────────────
    DocsHub.css
-   Clean, non-redundant card grid (Material-3–inspired)
    ──────────────────────────────────────────────────────────── */
 
-/* ----------  Outer section  ---------- */
 .docs-hub {
-  width: 90%;
+  width: 100%;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 3rem 1rem;
+  padding: 2rem 1.25rem 3rem;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .docs-hub__title {
-  font-size: 2.25rem;
+  font-size: 1.75rem;
   font-weight: 700;
-  margin-bottom: 2.5rem;
+  margin-bottom: 2rem;
   color: #111827;
 }
 
-/* ----------  Card grid  ---------- */
+/* ---------- Grid ---------- */
 .docs-hub__grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2.5rem;
+  grid-template-columns: 1fr;
+  gap: 1rem;
 }
 
-/* ----------  Card  ---------- */
+@media (min-width: 600px) {
+  .docs-hub__grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .docs-hub__title {
+    font-size: 2.25rem;
+    margin-bottom: 2.5rem;
+  }
+  .docs-hub__grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+}
+
+/* ---------- Card ---------- */
 .docs-card {
   display: flex;
   flex-direction: column;
-  align-items: center;
   text-align: left;
-  padding: 2rem 1.75rem;
+  padding: 1.5rem;
   border: 1px solid #e5e7eb;
   border-radius: 0.75rem;
   background: #ffffff;
   text-decoration: none;
   transition: box-shadow 160ms ease, transform 160ms ease;
+  box-sizing: border-box;
 }
 
 .docs-card:hover,
@@ -46,47 +63,30 @@
   transform: translateY(-2px);
 }
 
-/* ----------  Logo / icon  ---------- */
-.docs-card__logo {
-  width: 56px;
-  height: auto;
-  margin: 0 auto 1rem;
-  filter: grayscale(100%);
-  opacity: 0.9;
-  transition: transform 0.2s ease;
-}
-
-.docs-card:hover .docs-card__logo {
-  transform: scale(1.05);
-}
-
-.docs-card__icon {
-  font-size: 2.5rem;
-  line-height: 1;
-  margin-bottom: 1rem;
-}
-
-/* ----------  Text  ---------- */
+/* ---------- Text ---------- */
 .docs-card__heading {
-  align-self: stretch;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 600;
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.5rem;
   color: #111827;
 }
 
+@media (min-width: 600px) {
+  .docs-card__heading {
+    font-size: 1.2rem;
+  }
+}
+
 .docs-card__blurb {
-  align-self: stretch;
-  font-size: 0.95rem;
-  line-height: 1.5;
+  font-size: 0.9rem;
+  line-height: 1.55;
   color: #374151;
   margin: 0;
 }
 
-/* ----------  Accessibility: touch devices  ---------- */
+/* ---------- Touch devices ---------- */
 @media (hover: none) {
-  .docs-card:hover,
-  .docs-card:hover .docs-card__logo {
+  .docs-card:hover {
     box-shadow: none;
     transform: none;
   }

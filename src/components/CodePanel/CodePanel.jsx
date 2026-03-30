@@ -1,25 +1,25 @@
+// src/components/CodePanel/CodePanel.jsx
+
 import { useEffect, useRef, useState } from 'react';
-import { FontAwesomeIcon }          from '@fortawesome/react-fontawesome';
-import { faCopy }                   from '@fortawesome/free-regular-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCopy } from '@fortawesome/free-regular-svg-icons';
 
-import hljs   from 'highlight.js/lib/core';
+import hljs from 'highlight.js/lib/core';
 import python from 'highlight.js/lib/languages/python';
-import bash   from 'highlight.js/lib/languages/bash';
-import yaml   from 'highlight.js/lib/languages/yaml';
-import json   from 'highlight.js/lib/languages/json';
-import plaintext   from 'highlight.js/lib/languages/plaintext';
+import bash from 'highlight.js/lib/languages/bash';
+import yaml from 'highlight.js/lib/languages/yaml';
+import json from 'highlight.js/lib/languages/json';
+import plaintext from 'highlight.js/lib/languages/plaintext';
 
-import 'highlight.js/styles/github-dark.css';   // syntax colours
-import './codepanel.css';               // custom layout
+import 'highlight.js/styles/github-dark.css';
+import './codepanel.css';
 
-// Register languages once
 hljs.registerLanguage('python', python);
-hljs.registerLanguage('bash',    bash);
-hljs.registerLanguage('yaml',    yaml);
-hljs.registerLanguage('json',    json);
-hljs.registerLanguage('plaintext',    plaintext);
+hljs.registerLanguage('bash', bash);
+hljs.registerLanguage('yaml', yaml);
+hljs.registerLanguage('json', json);
+hljs.registerLanguage('plaintext', plaintext);
 
-/* --------------------------------------------------------------------- */
 export default function CodePanel({
   snippet   = '',
   language  = 'python',
@@ -29,12 +29,10 @@ export default function CodePanel({
   const codeRef = useRef(null);
   const [copied, setCopied] = useState(false);
 
-  /* highlight on mount / update */
   useEffect(() => {
     if (codeRef.current) hljs.highlightElement(codeRef.current);
   }, [snippet]);
 
-  /* copy handler */
   const handleCopy = () => {
     navigator.clipboard.writeText(snippet).then(() => {
       setCopied(true);
@@ -44,7 +42,6 @@ export default function CodePanel({
 
   return (
     <div className={`code-panel ${className}`}>
-      {/* header bar */}
       <header className="code-header">
         <span className="code-title">{title}</span>
 
@@ -52,13 +49,17 @@ export default function CodePanel({
           <span className="code-lang">{language}</span>
 
           <button onClick={handleCopy} className="code-copy">
-            <FontAwesomeIcon icon={faCopy} className="mr-1" />
-            {copied ? 'Copied' : 'Copy'}
+            <FontAwesomeIcon
+              icon={faCopy}
+              style={{ width: '16px', height: '16px' }}
+            />
+            <span className="code-copy__label">
+              {copied ? 'Copied' : 'Copy'}
+            </span>
           </button>
         </div>
       </header>
 
-      {/* code body */}
       <pre className="code-body">
         <code ref={codeRef} className={`language-${language}`}>
           {snippet.trimEnd()}

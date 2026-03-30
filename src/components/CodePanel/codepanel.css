@@ -1,38 +1,41 @@
 /* Core container */
-.code-panel{
+.code-panel {
   max-width: 960px;
   margin: 2.5rem auto;
   background: #1e1e1e;
   border: 1px solid #2d2d30;
   border-radius: 8px;
   box-shadow: 0 2px 5px rgba(0,0,0,.25);
-  overflow: hidden;
   font-family: Inter, ui-sans-serif, system-ui;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 /* Header bar */
-.code-header{
+.code-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: .55rem .95rem;
+  padding: .55rem 1.75rem .55rem .95rem;
   background: #232326;
   border-bottom: 1px solid #2d2d30;
+  border-radius: 8px 8px 0 0;
 }
 
-.code-title{
+.code-title {
   font-size: .75rem;
   font-weight: 500;
   color: #d4d4d4;
 }
 
-.code-meta{
+.code-meta {
   display: flex;
   align-items: center;
   gap: .65rem;
+  flex-shrink: 0;
 }
 
-.code-lang{
+.code-lang {
   font-size: .7rem;
   text-transform: lowercase;
   color: #d4d4d4;
@@ -40,7 +43,7 @@
 }
 
 /* Copy button */
-.code-copy{
+.code-copy {
   display: flex;
   align-items: center;
   gap: .25rem;
@@ -54,21 +57,74 @@
   transition: background .15s, color .15s;
 }
 
-.code-copy:hover{
+.code-copy:hover {
   background: #2d2d30;
   color: #ffffff;
 }
 
+.code-copy__label {
+  display: inline;
+}
+
 /* Code body */
-.code-body{
+.code-body {
   margin: 0;
   padding: 1rem 1.25rem;
   overflow-x: auto;
+  border-radius: 0 0 8px 8px;
 }
 
-.code-body code{
+.code-body code {
   font-size: .85rem;
   line-height: 1.45;
   display: block;
-  background: transparent; /* override hljs background */
+  background: transparent;
+}
+
+/* Mobile */
+@media (max-width: 767px) {
+  .code-panel {
+    margin: 1rem 0;
+    border-radius: 6px;
+  }
+
+  .code-header {
+    padding: .45rem 1rem .45rem .75rem;
+    border-radius: 6px 6px 0 0;
+  }
+
+  .code-title {
+    max-width: 40%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .code-meta {
+    flex-shrink: 0;
+    gap: .4rem;
+  }
+
+  .code-lang {
+    display: none;
+  }
+
+  .code-copy {
+    font-size: 1.1rem;
+    padding: .3rem .4rem;
+    color: #c0c0c0;
+  }
+
+  .code-copy__label {
+    display: none;
+  }
+
+  .code-body {
+    padding: 0.75rem;
+    border-radius: 0 0 6px 6px;
+  }
+
+  .code-body code {
+    font-size: 0.78rem;
+  }
 }

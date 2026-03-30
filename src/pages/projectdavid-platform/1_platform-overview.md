@@ -150,15 +150,16 @@ Requires NVIDIA GPU and nvidia-container-toolkit.
 ### With Sovereign Forge (training pipeline)
 
 ```bash
-# Training stack + Ray cluster
+# Training stack + Ray cluster + vLLM inference
 pdavid --mode up --training
 
-# Training + static vLLM inference server
-pdavid --mode up --training --vllm
-
-# Full sovereign stack — GPU inference + training
+# Full sovereign stack — Ollama + vLLM + training
 pdavid --mode up --gpu --training
 ```
+
+> `--training` always starts vLLM alongside the training stack. Use `--gpu --training` to also include Ollama.
+
+Requires NVIDIA GPU and nvidia-container-toolkit.
 
 ---
 

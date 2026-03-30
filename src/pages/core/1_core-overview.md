@@ -75,35 +75,6 @@ platform-api docker-manager --mode up
 
 > On first run, Project David generates a `.env` file containing unique locally-generated secrets — database passwords, signing keys, and service credentials. This file is never committed to version control. The Docker Compose stack is fully wired to these secrets automatically.
 
-The `docker-manager` subcommand exposes a full suite of orchestration options:
-
-| Option | Description |
-|---|---|
-| `--mode up` | Start the stack (default) |
-| `--mode down_only` | Stop the stack |
-| `--mode build` | Build images only |
-| `--mode both` | Build then start |
-| `--mode logs` | Show service logs |
-| `--with-ollama` | Start external Ollama container |
-| `--ollama-gpu` | Enable GPU passthrough for Ollama |
-| `--no-cache` | Force rebuild without Docker cache |
-| `--build-before-up` | Build images before starting |
-| `--force-recreate` | Recreate all containers |
-| `--nuke` | Destroy all stack data — requires typed confirmation |
-| `--services` | Start specific services only |
-| `--exclude` / `-x` | Exclude specific services |
-| `--down` | Stop before starting |
-| `--clear-volumes` / `-v` | Remove volumes on down |
-| `--attached` / `-a` | Run in foreground |
-| `--follow` / `-f` | Follow log output |
-| `--tail` | Number of log lines to tail |
-| `--timestamps` / `-t` | Show timestamps in logs |
-| `--no-log-prefix` | Omit service name prefix in logs |
-| `--tag` | Tag built images with a custom label |
-| `--parallel` | Build images in parallel |
-| `--verbose` / `--debug` | Enable debug logging |
-| `--debug-cache` | Run Docker cache diagnostics |
-
 **4. Update configuration variables.**
 
 ```bash
@@ -202,6 +173,80 @@ print(api_key.plain_key)
 ```
 
 > Do not use the admin key for general API calls. Issue dedicated user keys for all application access.
+
+---
+
+## Stack Modes
+
+### Base stack
+
+```bash
+platform-api docker-manager --mode up
+```
+
+Starts the core platform — API, database, sandbox, vector search, web search, observability.
+
+### With GPU inference
+
+```bash
+# Ollama only
+platform-api docker-manager --mode up --ollama
+
+# vLLM only (static inference server)
+platform-api docker-manager --mode up --vllm
+
+# Both Ollama and vLLM
+platform-api docker-manager --mode up --gpu
+```
+
+Requires NVIDIA GPU and nvidia-container-toolkit.
+
+### With Sovereign Forge (training pipeline)
+
+```bash
+# Training stack + Ray cluster + vLLM inference
+platform-api docker-manager --mode up --training
+
+# Full sovereign stack — Ollama + vLLM + training
+platform-api docker-manager --mode up --gpu --training
+```
+
+> `--training` always starts vLLM alongside the training stack. Use `--gpu --training` to also include Ollama.
+
+Requires NVIDIA GPU and nvidia-container-toolkit.
+
+---
+
+## CLI Reference
+
+| Option | Description |
+|---|---|
+| `--mode up` | Start the stack (default) |
+| `--mode down_only` | Stop the stack |
+| `--mode build` | Build images only |
+| `--mode both` | Build then start |
+| `--mode logs` | Show service logs |
+| `--training` | Start Sovereign Forge training stack + vLLM. Requires NVIDIA GPU |
+| `--gpu` | Start Ollama + vLLM. Requires NVIDIA GPU |
+| `--ollama` | Start Ollama only. Requires NVIDIA GPU |
+| `--vllm` | Start vLLM only. Requires NVIDIA GPU |
+| `--no-cache` | Force rebuild without Docker cache |
+| `--build-before-up` | Build images before starting |
+| `--force-recreate` | Recreate all containers |
+| `--nuke` | Destroy all stack data — requires typed confirmation |
+| `--services` | Start specific services only |
+| `--exclude` / `-x` | Exclude specific services |
+| `--down` | Stop before starting |
+| `--clear-volumes` / `-v` | Remove volumes on down |
+| `--attached` / `-a` | Run in foreground |
+| `--follow` / `-f` | Follow log output |
+| `--tail` | Number of log lines to tail |
+| `--timestamps` / `-t` | Show timestamps in logs |
+| `--no-log-prefix` | Omit service name prefix in logs |
+| `--tag` | Tag built images with a custom label |
+| `--parallel` | Build images in parallel |
+| `--verbose` / `--debug` | Enable debug logging |
+| `--debug-cache` | Run Docker cache diagnostics |
 
 ---
 

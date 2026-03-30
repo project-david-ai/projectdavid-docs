@@ -182,3 +182,23 @@
     min-width: 480px;
   }
 }
+@media (max-width: 767px) {
+  .markdown-body img {
+    max-width: 100%;
+    height: auto;
+    overflow-x: auto;
+  }
+
+  .markdown-body img[src$=".svg"] {
+    width: 100%;
+    min-width: 480px;
+    display: block;
+    overflow-x: auto;
+  }
+
+  .markdown-body p:has(img) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+

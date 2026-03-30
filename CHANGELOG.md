@@ -1,3 +1,11 @@
+# [1.9.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.8.0...v1.9.0) (2026-03-30)
+
+
+### Features
+
+* add SDK lifecycle diagram, LifecycleBar component, and SVG page support ([2142396](https://github.com/project-david-ai/projectdavid-docs/commit/21423963c36461fc54680ac23e34fba45734dae8))
+* hide algorithms category from nav, add per-page nav_exclude support ([9416ec3](https://github.com/project-david-ai/projectdavid-docs/commit/9416ec30c52ae0c76c3ee7f8b071c1bfdbe72615))
+
 # [1.8.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.7.0...v1.8.0) (2026-03-28)
 
 

@@ -17,8 +17,8 @@ export default function DocsHub() {
     blurb: 'The containerised deployment of Project David Core. Pull the pre-built Docker images, configure your environment, and bring up the full sovereign AI stack with a single command.',
   },
 
-    {
-  href: '/docs/sdk-quick-start',
+  {
+  href: '/docs/sdk-lifecycle',
   title: 'Developer SDK & API',
   blurb: 'Build AI-powered applications on a running Project David instance. Assistants, threads, tools, inference, fine-tuning, and full API reference.',
 },

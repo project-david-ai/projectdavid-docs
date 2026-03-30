@@ -2,6 +2,7 @@
 title: Assistants
 category: sdk
 slug: sdk-assistants
+lifecycle_step: create_assistant
 nav_order: 2
 ---
 

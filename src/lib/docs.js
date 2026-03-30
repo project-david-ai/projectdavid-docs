@@ -1,8 +1,8 @@
 /* ──────────────────────────────────────────────────────────────
    src/lib/docs.js
-   – collect markdown / tex / tla pages
+   – collect markdown / tex / tla / svg pages
    – expose `pages` map + grouped nav list
-   – supports explicit slug, nav_order, and optional nav_exclude
+   – supports explicit slug, nav_order, nav_exclude
    – supports hiddenCategories for bulk category hiding
    ──────────────────────────────────────────────────────────── */
 
@@ -34,6 +34,9 @@ const hiddenCategories = new Set(['algorithms']);
 
 /* ---------- tiny front-matter parser (keeps bundle slim) ---------- */
 function simpleMatter(raw) {
+  // Strip SVG comment wrapper if present
+  raw = raw.replace(/^<!--\s*\n/, '').replace(/\n-->\s*/, '\n');
+
   const fm = /^\s*---[ \t]*\r?\n([\s\S]+?)\r?\n---[ \t]*(\r?\n|$)/;
   const m  = fm.exec(raw);
   if (!m) return { data: {}, content: raw };
@@ -50,15 +53,15 @@ function simpleMatter(raw) {
   return { data, content: raw.slice(m[0].length) };
 }
 
-/* ---------- 1. grab every .md, .tex, .tla file (eager) ---------- */
+/* ---------- 1. grab every .md, .tex, .tla, .svg file (eager) ---------- */
 const docModules = import.meta.glob(
-  '../pages/**/*.{md,tex,tla}',
+  '../pages/**/*.{md,tex,tla,svg}',
   { as: 'raw', eager: true }
 );
 
 /* ---------- helper: strip extension safely ---------- */
 function stripExtension(filename) {
-  return filename.replace(/\.(md|tex|tla)$/i, '');
+  return filename.replace(/\.(md|tex|tla|svg)$/i, '');
 }
 
 /* ---------- 2. build main { slug: { frontmatter, content, path } } map ---------- */

@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.9.0...v1.10.0) (2026-03-30)
+
+
+### Features
+
+* mobile responsive improvements across docs, code panel, and sidebar ([952c7b2](https://github.com/project-david-ai/projectdavid-docs/commit/952c7b2de6adf8423e540acef4362e96fd2ce680))
+
 # [1.9.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.8.0...v1.9.0) (2026-03-30)
 
 

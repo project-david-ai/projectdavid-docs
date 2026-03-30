@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.10.0...v1.11.0) (2026-03-30)
+
+
+### Features
+
+* mobile responsive polish — tables, code panel, diagrams ([02e3343](https://github.com/project-david-ai/projectdavid-docs/commit/02e334359991ac3931f1c33f6f6688bc9321982f))
+
 # [1.10.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.9.0...v1.10.0) (2026-03-30)
 
 

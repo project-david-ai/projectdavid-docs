@@ -1,3 +1,11 @@
+# [1.8.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.7.0...v1.8.0) (2026-03-28)
+
+
+### Features
+
+* favicon, Open Graph meta tags, static OpenAPI spec, pipeline diagram ([aef1f00](https://github.com/project-david-ai/projectdavid-docs/commit/aef1f000bedc8d1e5638a8b7e40b86db820b6d46))
+* favicon, web manifest, Open Graph and Twitter meta tags ([992bed8](https://github.com/project-david-ai/projectdavid-docs/commit/992bed875c26d205d2c5bb0885b5a749e58cbeb5))
+
 # [1.7.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.6.0...v1.7.0) (2026-03-28)
 
 

@@ -1,3 +1,19 @@
+# [1.12.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.11.0...v1.12.0) (2026-03-31)
+
+
+### Bug Fixes
+
+* regenerate lockfile after rehype-slug install ([44d448e](https://github.com/project-david-ai/projectdavid-docs/commit/44d448ef2fdcc3cff859f76fda3a101bcac254d2))
+* regenerate lockfile with legacy-peer-deps, update Dockerfile.dev ([abe28df](https://github.com/project-david-ai/projectdavid-docs/commit/abe28dfd14c00d3dbed1dbadf83425c5701318ef))
+
+
+### Features
+
+* add hash anchors to SDK lifecycle diagram and Sovereign Forge docs ([2a2bff9](https://github.com/project-david-ai/projectdavid-docs/commit/2a2bff923d42a97cd68bee53ba09068e581aad05))
+* add rehype-slug for heading anchor scroll support ([c878235](https://github.com/project-david-ai/projectdavid-docs/commit/c8782359214a6223abb73565a0e0608e6a7782cb))
+* add rehype-slug to dependencies for heading anchor scroll ([f88fe56](https://github.com/project-david-ai/projectdavid-docs/commit/f88fe5610c87b9d469a011d221e33278fc62ed25))
+* add Sovereign Forge fine-tuning category to docs navigation ([5026c07](https://github.com/project-david-ai/projectdavid-docs/commit/5026c0715f7e954db20ad0d7d8dd5550c3969969))
+
 # [1.11.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.10.0...v1.11.0) (2026-03-30)
 
 

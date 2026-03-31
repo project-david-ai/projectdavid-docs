@@ -1,8 +1,8 @@
-// src/components/MarkdownPage/MarkdownPage.jsx
-
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeSlug from 'rehype-slug';
 import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import mermaid from 'mermaid';
 
 import CodePanel from '../CodePanel/CodePanel';
@@ -29,9 +29,19 @@ function MermaidBlock({ chart }) {
 }
 
 export default function MarkdownPage({ content, category, path, status, lifecycleStep }) {
+  const { hash } = useLocation();
   const isTex = path?.toLowerCase().endsWith('.tex');
   const isTla = path?.toLowerCase().endsWith('.tla');
   const isSvg = path?.toLowerCase().endsWith('.svg');
+
+  useEffect(() => {
+    if (!hash) return;
+    const id = hash.replace('#', '');
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 300);
+  }, [hash, content]);
 
   if (isTex) {
     return (
@@ -63,6 +73,7 @@ export default function MarkdownPage({ content, category, path, status, lifecycl
       {lifecycleStep && <LifecycleBar currentStep={lifecycleStep} />}
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeSlug]}
         components={{
           code({ node, inline, className = '', children, ...props }) {
             const match = /language-(\w+)/.exec(className || '');

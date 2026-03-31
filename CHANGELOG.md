@@ -1,3 +1,11 @@
+# [1.13.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.12.0...v1.13.0) (2026-03-31)
+
+
+### Features
+
+* add Sovereign Forge card to DocsHub landing page ([49aed95](https://github.com/project-david-ai/projectdavid-docs/commit/49aed953d9c88e159feb9a1b9d23bbf8b0e500bd))
+* add use case description to training pipeline SVG header ([3acc6fc](https://github.com/project-david-ai/projectdavid-docs/commit/3acc6fc2dd628c63e54ff42b9a6e2e05bcef3db0))
+
 # [1.12.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.11.0...v1.12.0) (2026-03-31)
 
 

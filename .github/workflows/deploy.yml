@@ -103,3 +103,31 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64
+
+  # ────────────────────────────────
+  #  🌍 Deploy to AWS
+  # ────────────────────────────────
+  deploy-aws:
+    name: 🌍 Deploy to AWS
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: 🚀 Pull & restart on AWS
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.AWS_HOST }}
+          username: ${{ secrets.AWS_USER }}
+          key: ${{ secrets.AWS_DEPLOY_KEY }}
+          script: |
+            docker pull thanosprime/projectdavid-docs:latest
+            docker stop projectdavid-docs || true
+            docker rm projectdavid-docs || true
+            docker run -d \
+              --name projectdavid-docs \
+              -p 80:80 \
+              -p 443:443 \
+              -v /etc/letsencrypt:/etc/letsencrypt:ro \
+              --restart unless-stopped \
+              thanosprime/projectdavid-docs:latest

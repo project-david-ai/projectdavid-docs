@@ -6,7 +6,7 @@ slug: fine-tuning-pipeline
 nav_order: 0
 ---
 -->
-<svg width="100%" viewBox="0 0 680 552" xmlns="http://www.w3.org/2000/svg">
+<svg width="100%" viewBox="0 0 680 648" xmlns="http://www.w3.org/2000/svg">
 <defs>
   <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
     <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -23,6 +23,8 @@ nav_order: 0
     .c-purple text { fill: #3C3489; }
     .c-teal rect { fill: #E1F5EE; stroke: #0F6E56; }
     .c-teal text { fill: #085041; }
+    .c-amber rect { fill: #FAEEDA; stroke: #854F0B; }
+    .c-amber text { fill: #633806; }
     .c-green-pill rect { fill: #C0DD97; stroke: #3B6D11; }
     .c-green-pill text { fill: #27500A; }
     .c-coral-pill rect { fill: #F5C4B3; stroke: #993C1D; }
@@ -39,88 +41,102 @@ nav_order: 0
   <tspan x="340" dy="18">Click any step to jump to its documentation.</tspan>
 </text>
 
-<!-- 1. datasets.create -->
-<a href="/docs/fine-tuning-datasets">
-  <g class="c-gray">
+<!-- 0. registry.list -->
+<a href="/docs/fine-tuning-base-models#list">
+  <g class="c-amber">
     <rect x="230" y="94" width="220" height="44" rx="8" stroke-width="0.5"/>
-    <text class="th" x="340" y="116" text-anchor="middle" dominant-baseline="central">datasets.create()</text>
+    <text class="th" x="340" y="116" text-anchor="middle" dominant-baseline="central">registry.list()</text>
   </g>
 </a>
 
-<line x1="340" y1="138" x2="340" y2="158" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+<!-- Discovery boundary -->
+<line x1="340" y1="138" x2="340" y2="150" stroke="#888780" stroke-width="1.5"/>
+<line x1="90" y1="158" x2="590" y2="158" stroke="#B4B2A9" stroke-width="0.5" stroke-dasharray="3 3"/>
+<text class="ts" x="340" y="158" text-anchor="middle" dominant-baseline="central" opacity="0.5">discovery</text>
+<line x1="340" y1="166" x2="340" y2="186" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+<!-- 1. datasets.create -->
+<a href="/docs/fine-tuning-datasets#create">
+  <g class="c-gray">
+    <rect x="230" y="186" width="220" height="44" rx="8" stroke-width="0.5"/>
+    <text class="th" x="340" y="208" text-anchor="middle" dominant-baseline="central">datasets.create()</text>
+  </g>
+</a>
+
+<line x1="340" y1="230" x2="340" y2="250" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
 
 <!-- 2. datasets.prepare -->
-<a href="/docs/fine-tuning-datasets">
+<a href="/docs/fine-tuning-datasets#prepare">
   <g class="c-gray">
-    <rect x="230" y="158" width="220" height="44" rx="8" stroke-width="0.5"/>
-    <text class="th" x="340" y="180" text-anchor="middle" dominant-baseline="central">datasets.prepare()</text>
+    <rect x="230" y="250" width="220" height="44" rx="8" stroke-width="0.5"/>
+    <text class="th" x="340" y="272" text-anchor="middle" dominant-baseline="central">datasets.prepare()</text>
   </g>
 </a>
 
 <!-- Preparing boundary -->
-<line x1="340" y1="202" x2="340" y2="214" stroke="#888780" stroke-width="1.5"/>
-<line x1="90" y1="222" x2="590" y2="222" stroke="#B4B2A9" stroke-width="0.5" stroke-dasharray="3 3"/>
-<text class="ts" x="340" y="222" text-anchor="middle" dominant-baseline="central" opacity="0.5">preparing</text>
-<line x1="340" y1="230" x2="340" y2="250" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
-
-<!-- 3. datasets.retrieve (poll) -->
-<a href="/docs/fine-tuning-datasets">
-  <g class="c-purple">
-    <rect x="230" y="250" width="220" height="44" rx="8" stroke-width="0.5"/>
-    <text class="th" x="340" y="272" text-anchor="middle" dominant-baseline="central">datasets.retrieve()</text>
-  </g>
-</a>
-
-<!-- Poll loop arrow -->
-<path d="M 450,280 L 500,280 L 500,254 L 452,254" fill="none" stroke="#888780" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
-<text class="ts" x="506" y="267" dominant-baseline="central" opacity="0.5">poll</text>
-
-<!-- Training boundary -->
 <line x1="340" y1="294" x2="340" y2="306" stroke="#888780" stroke-width="1.5"/>
 <line x1="90" y1="314" x2="590" y2="314" stroke="#B4B2A9" stroke-width="0.5" stroke-dasharray="3 3"/>
-<text class="ts" x="340" y="314" text-anchor="middle" dominant-baseline="central" opacity="0.5">training</text>
+<text class="ts" x="340" y="314" text-anchor="middle" dominant-baseline="central" opacity="0.5">preparing</text>
 <line x1="340" y1="322" x2="340" y2="342" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
 
-<!-- 4. training.create -->
-<a href="/docs/fine-tuning-training-jobs">
-  <g class="c-teal">
-    <rect x="230" y="342" width="220" height="44" rx="8" stroke-width="0.5"/>
-    <text class="th" x="340" y="364" text-anchor="middle" dominant-baseline="central">training.create()</text>
-  </g>
-</a>
-
-<line x1="340" y1="386" x2="340" y2="406" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
-
-<!-- 5. training.retrieve (poll) -->
-<a href="/docs/fine-tuning-training-jobs">
+<!-- 3. datasets.retrieve (poll) -->
+<a href="/docs/fine-tuning-datasets#retrieve">
   <g class="c-purple">
-    <rect x="230" y="406" width="220" height="44" rx="8" stroke-width="0.5"/>
-    <text class="th" x="340" y="428" text-anchor="middle" dominant-baseline="central">training.retrieve()</text>
+    <rect x="230" y="342" width="220" height="44" rx="8" stroke-width="0.5"/>
+    <text class="th" x="340" y="364" text-anchor="middle" dominant-baseline="central">datasets.retrieve()</text>
   </g>
 </a>
 
 <!-- Poll loop arrow -->
-<path d="M 450,436 L 500,436 L 500,410 L 452,410" fill="none" stroke="#888780" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
-<text class="ts" x="506" y="423" dominant-baseline="central" opacity="0.5">poll</text>
+<path d="M 450,372 L 500,372 L 500,346 L 452,346" fill="none" stroke="#888780" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+<text class="ts" x="506" y="359" dominant-baseline="central" opacity="0.5">poll</text>
+
+<!-- Training boundary -->
+<line x1="340" y1="386" x2="340" y2="398" stroke="#888780" stroke-width="1.5"/>
+<line x1="90" y1="406" x2="590" y2="406" stroke="#B4B2A9" stroke-width="0.5" stroke-dasharray="3 3"/>
+<text class="ts" x="340" y="406" text-anchor="middle" dominant-baseline="central" opacity="0.5">training</text>
+<line x1="340" y1="414" x2="340" y2="434" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+<!-- 4. training.create -->
+<a href="/docs/fine-tuning-training-jobs#create">
+  <g class="c-teal">
+    <rect x="230" y="434" width="220" height="44" rx="8" stroke-width="0.5"/>
+    <text class="th" x="340" y="456" text-anchor="middle" dominant-baseline="central">training.create()</text>
+  </g>
+</a>
+
+<line x1="340" y1="478" x2="340" y2="498" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+<!-- 5. training.retrieve (poll) -->
+<a href="/docs/fine-tuning-training-jobs#retrieve">
+  <g class="c-purple">
+    <rect x="230" y="498" width="220" height="44" rx="8" stroke-width="0.5"/>
+    <text class="th" x="340" y="520" text-anchor="middle" dominant-baseline="central">training.retrieve()</text>
+  </g>
+</a>
+
+<!-- Poll loop arrow -->
+<path d="M 450,528 L 500,528 L 500,502 L 452,502" fill="none" stroke="#888780" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+<text class="ts" x="506" y="515" dominant-baseline="central" opacity="0.5">poll</text>
 
 <!-- T-junction to terminals -->
-<line x1="340" y1="450" x2="340" y2="460" stroke="#888780" stroke-width="1.5"/>
-<line x1="165" y1="460" x2="515" y2="460" stroke="#888780" stroke-width="1.5"/>
-<line x1="165" y1="460" x2="165" y2="480" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
-<line x1="515" y1="460" x2="515" y2="480" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
-<text class="ts" x="165" y="470" text-anchor="middle" dominant-baseline="central" opacity="0.5">completed</text>
-<text class="ts" x="515" y="470" text-anchor="middle" dominant-baseline="central" opacity="0.5">failed</text>
+<line x1="340" y1="542" x2="340" y2="552" stroke="#888780" stroke-width="1.5"/>
+<line x1="165" y1="552" x2="515" y2="552" stroke="#888780" stroke-width="1.5"/>
+<line x1="165" y1="552" x2="165" y2="572" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="515" y1="552" x2="515" y2="572" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="ts" x="165" y="562" text-anchor="middle" dominant-baseline="central" opacity="0.5">completed</text>
+<text class="ts" x="515" y="562" text-anchor="middle" dominant-baseline="central" opacity="0.5">failed</text>
 
 <!-- Terminal: adapters saved -->
 <g class="c-green-pill">
-  <rect x="100" y="480" width="130" height="32" rx="16" stroke-width="0.5"/>
-  <text class="ts" x="165" y="496" text-anchor="middle" dominant-baseline="central">adapters saved</text>
+  <rect x="100" y="572" width="130" height="32" rx="16" stroke-width="0.5"/>
+  <text class="ts" x="165" y="588" text-anchor="middle" dominant-baseline="central">adapters saved</text>
 </g>
 
 <!-- Terminal: see last_error -->
 <g class="c-coral-pill">
-  <rect x="450" y="480" width="130" height="32" rx="16" stroke-width="0.5"/>
-  <text class="ts" x="515" y="496" text-anchor="middle" dominant-baseline="central">see last_error</text>
+  <rect x="450" y="572" width="130" height="32" rx="16" stroke-width="0.5"/>
+  <text class="ts" x="515" y="588" text-anchor="middle" dominant-baseline="central">see last_error</text>
 </g>
 
 </svg>

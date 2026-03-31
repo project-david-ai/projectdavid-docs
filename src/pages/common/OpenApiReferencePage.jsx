@@ -1,11 +1,8 @@
 // src/pages/common/OpenApiReferencePage.jsx
 import './ApiReferencePage.css';
 
-// Static file served from /public/openapi.json — no env var needed.
-// Vite serves /public at the root, so '/openapi.json' works in all envs.
-const OPENAPI_URL = '/openapi.json';
-
 export default function OpenApiReferencePage() {
+
   const iframeHtml = `
     <!DOCTYPE html>
     <html>
@@ -13,13 +10,16 @@ export default function OpenApiReferencePage() {
         <title>API Reference</title>
         <meta charset="utf-8"/>
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>body { margin: 0; padding: 0; }</style>
+        <style>
+          body { margin: 0; padding: 0; }
+        </style>
       </head>
       <body>
         <div id="redoc-container"></div>
         <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
         <script>
-          Redoc.init('${OPENAPI_URL}', {}, document.getElementById('redoc-container'));
+          const specUrl = window.parent.location.origin + '/openapi.json';
+          Redoc.init(specUrl, {}, document.getElementById('redoc-container'));
         </script>
       </body>
     </html>

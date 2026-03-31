@@ -18,11 +18,14 @@ const cards = [
     title: 'Developer SDK & API',
     blurb: 'Build AI-powered applications on a running Project David instance. Assistants, threads, tools, inference, fine-tuning, and full API reference.',
   },
+
   {
-    href: '/docs/role_resolution_algorithm',
-    title: 'Algorithms & Architecture',
-    blurb: 'Formal specifications, proofs, and architectural deep-dives for researchers and technically curious evaluators.',
-  },
+  href: '/docs/fine-tuning-pipeline',
+  title: 'Sovereign Forge',
+  blurb: 'Fine-tune open-weight models entirely on your own infrastructure. Domain adaptation, LoRA training, and adapter deployment — no data leaves the deployment boundary.',
+},
+
+
 ];
 
 export default function DocsHub() {

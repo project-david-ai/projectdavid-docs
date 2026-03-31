@@ -1,3 +1,10 @@
+## [1.13.1](https://github.com/project-david-ai/projectdavid-docs/compare/v1.13.0...v1.13.1) (2026-03-31)
+
+
+### Bug Fixes
+
+* **api-reference:** resolve OPENAPI_URL to static public asset path, removing VITE_OPENAPI_URL env var that was baking localhost:9000 into prod builds ([8e93259](https://github.com/project-david-ai/projectdavid-docs/commit/8e93259df38e627fe4590faf9b4116327c86ec85))
+
 # [1.13.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.12.0...v1.13.0) (2026-03-31)
 
 

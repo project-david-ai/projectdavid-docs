@@ -1,3 +1,10 @@
+## [1.13.2](https://github.com/project-david-ai/projectdavid-docs/compare/v1.13.1...v1.13.2) (2026-03-31)
+
+
+### Bug Fixes
+
+* **api-reference:** resolve openapi.json via window.parent.location.origin to avoid lstatSync iframe path resolution error ([98265e7](https://github.com/project-david-ai/projectdavid-docs/commit/98265e732054bc754b45cf4a48520848816bb613))
+
 ## [1.13.1](https://github.com/project-david-ai/projectdavid-docs/compare/v1.13.0...v1.13.1) (2026-03-31)
 
 

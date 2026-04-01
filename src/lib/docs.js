@@ -12,6 +12,7 @@ const categoryDisplayNames = {
   'projectdavid-platform' : 'PROJECT DAVID PLATFORM',
   'sdk'                   : 'SDK',
   'fine-tuning'           : 'SOVEREIGN FORGE',
+  'admin'                 : 'ADMIN',
   'endpoints'             : 'API ENDPOINTS',
   'providers'             : 'PROVIDERS',
   'infrastructure'        : 'INFRASTRUCTURE',
@@ -25,11 +26,12 @@ const categoryOrder = {
   'projectdavid-platform' : 3,
   'sdk'                   : 4,
   'fine-tuning'           : 5,
-  'endpoints'             : 6,
-  'providers'             : 7,
-  'infrastructure'        : 8,
-  'api-infra'             : 9,
-  'architecture'          : 10,
+  'admin'                 : 6,
+  'endpoints'             : 7,
+  'providers'             : 8,
+  'infrastructure'        : 9,
+  'api-infra'             : 10,
+  'architecture'          : 11,
 };
 
 const hiddenCategories = new Set(['algorithms']);

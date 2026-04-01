@@ -1,3 +1,10 @@
+# [1.14.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.13.2...v1.14.0) (2026-04-01)
+
+
+### Features
+
+* **docs:** add admin section with model activation pipeline and documentation ([e4e2840](https://github.com/project-david-ai/projectdavid-docs/commit/e4e2840ecdebdf3827ac6a0603e3b3622e928eda))
+
 ## [1.13.2](https://github.com/project-david-ai/projectdavid-docs/compare/v1.13.1...v1.13.2) (2026-03-31)
 
 

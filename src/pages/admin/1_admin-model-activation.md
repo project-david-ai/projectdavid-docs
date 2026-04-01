@@ -7,7 +7,7 @@ nav_order: 1
 
 # Model Activation
 
-Model activation is the process of deploying a locally hosted model to the inference cluster so it can serve requests. Activation applies only to vLLM-backed models. Cloud providers (Hyperbolic, TogetherAI, etc.) do not require activation.
+Model activation is the process of deploying a locally hosted model to the inference cluster so it can serve requests. Activation applies only to vLLM-backed models. Cloud providers (OpenAI, Anthropic, etc.) do not require activation.
 
 Activation is **admin-scoped**. A standard user API key cannot activate or deactivate models. Model retrieval and listing are user-scoped.
 
@@ -19,7 +19,7 @@ Activation is **admin-scoped**. A standard user API key cannot activate or deact
 
 A **base model** is a HuggingFace model registered in the catalog. It is the backbone that vLLM loads into GPU memory.
 
-A **fine-tuned model** is a LoRA adapter produced by a Sovereign Forge training run. It sits on top of a base model and costs no additional VRAM — vLLM loads the base weights once and swaps adapters per request.
+A **fine-tuned model** is a LoRA adapter produced by a Sovereign Forge training run. It sits on top of a base model and costs no additional VRAM. vLLM loads the base weights once and swaps adapters per request.
 
 When you activate a fine-tuned model, the platform resolves its base model automatically and deploys both together as a single vLLM instance. This means **two inference routes become available from the same GPU**:
 
@@ -38,7 +38,7 @@ Calling `activate()` returns immediately with `status: "deploying"`. The actual 
 
 ## Register a base model
 
-Before activating, the base model must exist in the catalog. Registration is idempotent; calling it again returns the existing record.
+Before activating, the base model must exist in the catalog. Registration is idempotent: calling it again returns the existing record.
 
 ```python
 from projectdavid import Entity
@@ -55,13 +55,13 @@ registered = admin_client.registry.register(
 print(registered.id)  # bm_JkKzqsbqGJ4cB4dYqdDebm
 ```
 
-Hold on to the returned `bm_...` ID — you need it for base model activation and deactivation.
+Hold on to the returned `bm_...` ID. You will need it for base model activation and deactivation.
 
 ---
 
 ## Activate a fine-tuned model
 
-Fine-tuned model IDs (`ftm_...`) are produced by training jobs and are user-scoped. Retrieve one first to confirm it exists before activating.
+Fine-tuned model IDs (`ftm_...`) are produced by [training jobs](/docs/fine-tuning-training-jobs) and are user-scoped. Retrieve one first to confirm it exists before activating.
 
 ```python
 from projectdavid import Entity
@@ -115,7 +115,7 @@ print(result)
 
 ---
 
-## Emergency stop — deactivate all
+## Emergency stop: deactivate all
 
 Clears every active deployment and returns the cluster to an idle state. Use this when you need a clean slate or before a maintenance window.
 
@@ -154,6 +154,30 @@ result = admin_client.models.activate(
 ```
 
 If omitted, the platform selects the most resource-rich available node automatically.
+
+---
+
+## Communicating the model endpoint to requestors
+
+When a deployment is active, vLLM serves it at a route derived from the deployment ID. The `activate()` response includes a `serve_route` field showing the internal URL, but the string your requestors need to pass as the `model` parameter at inference time follows this pattern:
+
+```
+vllm/vllm_dep_{deployment_id}
+```
+
+For example, if the deployment ID is `dep_cDBDmVAvwc9fjaZF0FIgfx`, the model string to pass is:
+
+```
+vllm/vllm_dep_cDBDmVAvwc9fjaZF0FIgfx
+```
+
+This is what the requestor sets in the `model` field of their inference request. The platform uses this string to route the request to the correct vLLM instance. Pass this string to your team once the deployment is confirmed live. The deployment ID is returned in the `activate()` response and is also visible in the Ray dashboard under the Serve tab.
+
+---
+
+## Monitoring
+
+The Ray dashboard at `http://localhost:8265` shows deployment health, GPU resource availability, and live actor status. For a full guide to reading the inference worker logs and understanding Ray Serve output, see [Ray and the inference worker](/docs/admin-ray-inference).
 
 ---
 

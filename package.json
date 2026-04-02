@@ -19,6 +19,7 @@
     "@stoplight/elements": "^9.0.15",
     "flubber": "^0.4.2",
     "framer-motion": "^12.18.1",
+    "fuse.js": "^7.1.0",
     "highlight.js": "^11.11.1",
     "katex": "^0.16.33",
     "lucide-react": "^0.519.0",

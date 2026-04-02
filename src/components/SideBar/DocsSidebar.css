@@ -1,122 +1,4 @@
-/* ===============  Desktop baseline  =============================== */
-.docs-sidebar {
-  width: 280px;
-  flex-shrink: 0;
-  background: #101828;
-  color: #eaecf0;
-  padding: 24px 16px;
-  height: 100vh;
-  position: sticky;
-  top: 0;
-  overflow-y: auto;
-  transition: transform 240ms ease;
-}
-
-/* -------- Layout inside the sidebar -------- */
-.sidebar-group  { margin-bottom: 24px; }
-.sidebar-header {
-  font: 600 12px/1 'Inter', sans-serif;
-  color: #98a2b3;
-  letter-spacing: .05em;
-  margin: 0 0 12px;
-  padding: 0 8px;
-  text-transform: uppercase;
-}
-.sidebar-link   {
-  display: block;
-  font: 500 14px/1.4 'Inter', sans-serif;
-  color: #eaecf0;
-  padding: 8px 12px;
-  border-radius: 6px;
-  text-decoration: none;
-  transition: background-color .15s;
-}
-.sidebar-link:hover  { background: #344054; }
-.sidebar-link.active { background: #344054; color: #fff; font-weight: 600; }
-
-/* ===============  Mobile adaptations  ============================= */
-
-/* Burger button – visible only below 768 px */
-.docs-burger {
-  position: fixed;
-  top: 16px;
-  left: 16px;
-  z-index: 1100;
-  background: #101828;
-  border: 1px solid #344054;
-  color: #eaecf0;
-  padding: 6px 7px;
-  border-radius: 6px;
-  display: none;                 /* hidden on desktop */
-}
-
-/* Close (X) button – default hidden */
-.sidebar-close { display: none; }
-
-@media (max-width: 767px) {
-  .docs-burger { display: inline-flex; }
-
-  /* Sidebar becomes off-canvas drawer */
-  .docs-sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    height: 100vh;
-    transform: translateX(-100%);
-    z-index: 1200;
-  }
-  .docs-sidebar.sidebar--open {
-    transform: translateX(0);
-  }
-
-  /* Close (X) button inside drawer */
-  .sidebar-close {
-    display: block;              /* 👈 visible only on mobile */
-    position: absolute;
-    top: 18px;
-    right: 18px;
-    background: none;
-    border: none;
-    color: #eaecf0;
-  }
-
-  /* Backdrop */
-  .sidebar-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,.4);
-    backdrop-filter: blur(1px);
-    z-index: 1150;
-  }
-}
-
-
-.sidebar-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.5rem 0;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: #94a3b8;
-  text-transform: uppercase;
-  text-align: left;
-}
-
-.sidebar-header:hover {
-  color: #475569;
-}
-
-/* Disable hover transitions for touch devices */
-@media (hover: none) {
-  .sidebar-link:hover { background: none; }
-}
-/* ── Layout shell ── */
+/* ── Layout shell ──────────────────────────────────────────── */
 .docs-layout {
   display: flex;
   min-height: 100vh;
@@ -129,8 +11,185 @@
   background: #fff;
 }
 
+/* ── Sidebar ───────────────────────────────────────────────── */
+.docs-sidebar {
+  width: 272px;
+  flex-shrink: 0;
+  background: #0c1a27;
+  color: #94a3b8;
+  padding: 24px 12px 32px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  transition: transform 240ms ease;
+}
+
+/* Thin scrollbar */
+.docs-sidebar::-webkit-scrollbar       { width: 3px; }
+.docs-sidebar::-webkit-scrollbar-track { background: transparent; }
+.docs-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+}
+
+/* ── Brand header ──────────────────────────────────────────── */
+.sidebar-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 0 8px 20px;
+}
+
+.sidebar-brand-name {
+  font: 600 14px/1 'Inter', sans-serif;
+  color: #e2e8f0;
+  letter-spacing: 0.01em;
+}
+
+.sidebar-brand-tag {
+  font: 500 11px/1 'Inter', sans-serif;
+  color: #16a34a;
+  opacity: 0.75;
+  letter-spacing: 0.04em;
+}
+
+/* ── Divider ───────────────────────────────────────────────── */
+.sidebar-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 0 8px 18px;
+}
+
+/* ── Groups ────────────────────────────────────────────────── */
+.sidebar-group {
+  margin-bottom: 6px;
+}
+
+/* ── Category header button ────────────────────────────────── */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 5px;
+  font: 600 10.5px/1 'Inter', sans-serif;
+  letter-spacing: 0.07em;
+  color: #334d66;
+  text-transform: uppercase;
+  text-align: left;
+  transition: color 0.15s;
+  margin-bottom: 2px;
+}
+
+.sidebar-header:hover {
+  color: #4a6380;
+}
+
+/* ── Nav links ─────────────────────────────────────────────── */
+.sidebar-link {
+  display: block;
+  font: 400 13.5px/1.4 'Inter', sans-serif;
+  color: #64748b;
+  padding: 7px 10px 7px 14px;
+  border-radius: 5px;
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+  margin-bottom: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-link:hover {
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.sidebar-link.active {
+  color: #f1f5f9;
+  font-weight: 500;
+  border-left-color: #16a34a;
+  background: rgba(22, 163, 74, 0.07);
+}
+
+/* ── Burger (mobile) ───────────────────────────────────────── */
+.docs-burger {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 1100;
+  background: #0c1a27;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  padding: 6px 7px;
+  border-radius: 6px;
+  display: none;
+}
+
+/* ── Close button (mobile) ─────────────────────────────────── */
+.sidebar-close {
+  display: none;
+}
+
+/* ── Backdrop (mobile) ─────────────────────────────────────── */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  z-index: 1150;
+}
+
+/* ── Mobile ────────────────────────────────────────────────── */
 @media (max-width: 767px) {
+  .docs-burger { display: inline-flex; }
+
+  .docs-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    transform: translateX(-100%);
+    z-index: 1200;
+  }
+
+  .docs-sidebar.sidebar--open {
+    transform: translateX(0);
+  }
+
+  .sidebar-close {
+    display: block;
+    position: absolute;
+    top: 18px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.1s;
+  }
+
+  .sidebar-close:hover {
+    color: #94a3b8;
+  }
+
   .docs-main {
     padding: 4.5rem 1rem 2rem;
+  }
+}
+
+/* Disable hover on touch devices */
+@media (hover: none) {
+  .sidebar-link:hover {
+    background: none;
+    color: #64748b;
   }
 }

@@ -1,23 +1,14 @@
 // src/components/SideBar/DocsSidebar.jsx
-
 import { useState } from 'react';
 import { Menu, X, ChevronDown, ChevronRight } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
-import { groupedNavItems, sortedGroupKeys } from '../../lib/docs';
+import { groupedNavItems, sortedGroupKeys, categoryDisplayNames } from '../../lib/docs';
+import SearchBar from '../SearchBar/SearchBar';
 import './DocsSidebar.css';
-
-const categoryDisplayNames = {
-  'overview'      : 'OVERVIEW',
-  'sdk'           : 'SDK',
-  'endpoints'     : 'API ENDPOINTS',
-  'providers'     : 'PROVIDERS',
-  'infrastructure': 'INFRASTRUCTURE',
-  'architecture'  : 'ARCHITECTURE',
-};
 
 function SidebarGroup({ groupKey, items, onNavClick, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
-  const label = categoryDisplayNames[groupKey] || groupKey;
+  const label = categoryDisplayNames[groupKey] || groupKey.replace(/-/g, ' ').toUpperCase();
 
   return (
     <div className="sidebar-group">
@@ -28,8 +19,8 @@ function SidebarGroup({ groupKey, items, onNavClick, defaultOpen = false }) {
       >
         <span>{label}</span>
         {open
-          ? <ChevronDown size={14} strokeWidth={2} />
-          : <ChevronRight size={14} strokeWidth={2} />
+          ? <ChevronDown size={13} strokeWidth={2} />
+          : <ChevronRight size={13} strokeWidth={2} />
         }
       </button>
 
@@ -42,7 +33,7 @@ function SidebarGroup({ groupKey, items, onNavClick, defaultOpen = false }) {
               end
               onClick={onNavClick}
               className={({ isActive }) =>
-                `sidebar-link ${isActive ? 'active' : ''}`
+                `sidebar-link${isActive ? ' active' : ''}`
               }
             >
               {label}
@@ -57,6 +48,8 @@ function SidebarGroup({ groupKey, items, onNavClick, defaultOpen = false }) {
 export default function DocsSidebar() {
   const [open, setOpen] = useState(false);
 
+  const closeDrawer = () => setOpen(false);
+
   return (
     <>
       {/* ── Burger (mobile only) ─────────────────────────────── */}
@@ -70,22 +63,36 @@ export default function DocsSidebar() {
       </button>
 
       {/* ── Sidebar / Drawer ────────────────────────────────── */}
-      <aside className={`docs-sidebar ${open ? 'sidebar--open' : ''}`}>
+      <aside className={`docs-sidebar${open ? ' sidebar--open' : ''}`}>
+
         {/* Close button (mobile) */}
         <button
           className="sidebar-close"
           aria-label="Close navigation"
-          onClick={() => setOpen(false)}
+          onClick={closeDrawer}
         >
-          <X size={22} strokeWidth={2} />
+          <X size={20} strokeWidth={2} />
         </button>
 
+        {/* Project name */}
+        <div className="sidebar-brand">
+          <span className="sidebar-brand-name">Project David</span>
+          <span className="sidebar-brand-tag">docs</span>
+        </div>
+
+        {/* Search */}
+        <SearchBar onNavigate={closeDrawer} />
+
+        {/* Divider */}
+        <div className="sidebar-divider" />
+
+        {/* Nav groups */}
         {sortedGroupKeys.map(groupKey => (
           <SidebarGroup
             key={groupKey}
             groupKey={groupKey}
             items={groupedNavItems[groupKey]}
-            onNavClick={() => setOpen(false)}
+            onNavClick={closeDrawer}
             defaultOpen={false}
           />
         ))}
@@ -93,7 +100,7 @@ export default function DocsSidebar() {
 
       {/* Backdrop (mobile) */}
       {open && (
-        <div className="sidebar-backdrop" onClick={() => setOpen(false)} />
+        <div className="sidebar-backdrop" onClick={closeDrawer} />
       )}
     </>
   );

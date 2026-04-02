@@ -1,3 +1,10 @@
+# [1.15.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.14.0...v1.15.0) (2026-04-01)
+
+
+### Features
+
+* **docs:** add model endpoint handoff section and Ray inference worker monitoring guide ([122c32e](https://github.com/project-david-ai/projectdavid-docs/commit/122c32e32414f9d60697edab11d79973426b200f))
+
 # [1.14.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.13.2...v1.14.0) (2026-04-01)
 
 

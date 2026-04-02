@@ -4,70 +4,59 @@ category: overview
 slug: api-index
 ---
 
-# Platform Overview
+# Project David
 
-The Platform API lets you build AI assistants that integrate cleanly into your own applications.
-Each assistant is a self-contained entity, configured with its own instructions, model, and tools,
-and fully decoupled from your application logic.
+Project David is a sovereign AI runtime and state management API.
 
-A single stateful API abstracts across a wide range of open-weight models and inference providers.
-One interface, regardless of what is running behind it.
+It implements the OpenAI Assistants API specification (Assistants, Threads, Messages, Runs, and Tools) and runs entirely on your infrastructure, against any model endpoint you point it at.
 
-All endpoints are plain REST. The official SDK is recommended for the best developer experience.
-
-## How Entities Works
-
-```mermaid
-%%{init: {
-  "theme": "base",
-  "themeVariables": {
-    "background": "#f8f9fc",
-    "primaryColor": "#dbeafe",
-    "primaryTextColor": "#1e3a5f",
-    "primaryBorderColor": "#3b82f6",
-    "secondaryColor": "#fef3c7",
-    "secondaryTextColor": "#78350f",
-    "secondaryBorderColor": "#f59e0b",
-    "nodeTextColor": "#1e293b",
-    "edgeLabelBackground": "#f1f5f9",
-    "titleColor": "#1e293b",
-    "lineColor": "#94a3b8",
-    "fontSize": "18px",
-    "fontFamily": "Georgia, serif"
-  }
-}}%%
-graph LR
-    Assistant[Assistant\nInstructions · Tools · Model]
-    Thread[Thread\nConversation Session\nMessage History]
-    Message[Message\nUser · Assistant\nTool · System]
-    Run[Run\nIn-flight State\nTool Invocation · Steps]
-    Inference[Inference\nModel Execution\nLocal · Cloud]
-
-    Assistant --> |"scopes"| Thread
-    Thread --> |"contains"| Message
-    Message --> |"triggers"| Run
-    Run --> |"dispatches to"| Inference
-    Inference --> |"response appended as"| Message
-
-    classDef main fill:#dbeafe,stroke:#3b82f6,stroke-width:1.5px,color:#1e3a5f
-    classDef worker fill:#fef3c7,stroke:#f59e0b,stroke-width:1.5px,color:#78350f
-    classDef external fill:#dcfce7,stroke:#22c55e,stroke-width:1.5px,color:#14532d
-
-    class Assistant,Thread main
-    class Run,Message worker
-    class Inference external
-```
-
-## Objects
-
-| Object | Purpose |
-|---|---|
-| [**Assistant**](https://docs.projectdavid.co.uk/docs/Create-assistant) | A distinct AI entity configured with its own instructions, model, and tools. |
-| [**Thread**](https://docs.projectdavid.co.uk/docs/Threads) | A conversation session between a user and an assistant. Stores the full message history and manages context window truncation automatically. |
-| [**Message**](https://docs.projectdavid.co.uk/docs/Messages) | An individual turn in a conversation. Each message carries a role (user, assistant, system, or tool) and is stored sequentially within a thread. |
-| [**Run**](https://docs.projectdavid.co.uk/docs/Runs) | The in-flight execution state for a given thread. Mediates tool invocation and function calls on behalf of the assistant. Run steps provide a structured trace of each action taken during response generation. |
-| **Inference** | Takes the constructed context from the thread and passes it to the selected model. Supports both local inference and a range of cloud providers. |
+If you have used the OpenAI Assistants API, you already know how to use this. The difference is that you own the runtime, the data, and the compute.
 
 ---
 
-Ready to build? The [Quick Start](/docs/sdk-quick-start) guide walks through a complete inference call from setup to streaming response.
+## Architecture
+
+![Project David Stack](https://raw.githubusercontent.com/project-david-ai/projectdavid-platform/master/assets/svg/projectdavid-stack.svg)
+
+---
+
+## What it is
+
+A stateful orchestration layer that sits between your application and your model endpoints. It manages conversation state, context windows, tool dispatch, and streaming. Your application talks to one API regardless of what is running behind it.
+
+Model endpoints it routes to today:
+
+- Hosted providers: OpenAI-compatible APIs, Hyperbolic, Together AI, DeepSeek
+- Local GPU inference: vLLM via Ray Serve (Sovereign Forge), Ollama
+- Any OpenAI-compatible endpoint
+
+Swapping the model behind an assistant is a single field change. No application code changes required.
+
+---
+
+## What it is not
+
+Project David is not a gateway or a proxy. It does not rewrite requests and forward them. It is a runtime: it holds state, manages the execution loop, dispatches tools, streams responses, and appends results back to the thread. The nearest equivalent in the ecosystem is the OpenAI Assistants API, not LiteLLM.
+
+---
+
+## Who it is for
+
+Teams and individuals who need the stateful assistant primitives of the OpenAI Assistants API but cannot or will not send data to a cloud provider. This includes security-constrained environments, airgapped deployments, organisations with data residency requirements, and anyone building on open weights models who wants a production-grade orchestration layer rather than a collection of prompt utilities.
+
+---
+
+## Licensing
+
+Project David is distributed under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/). Personal projects, research, and internal non-commercial use are permitted at no cost.
+
+Commercial deployments require a separate licence. This includes production use within a company, embedding Project David in a commercial product, or operating it as part of a service offered to paying customers. Contact [licensing@projectdavid.co.uk](mailto:licensing@projectdavid.co.uk) to discuss terms.
+
+---
+
+## Where to go next
+
+- [Quick Start](/docs/sdk-quick-start): a complete inference call from setup to streaming response in under five minutes
+- [Project David Core](/docs/core-overview): run the full stack from source
+- [Project David Platform](/docs/platform-overview): containerised deployment via pip, no source required
+- [Sovereign Forge](/docs/fine-tuning-pipeline): fine-tune open weights models and serve them from the same runtime

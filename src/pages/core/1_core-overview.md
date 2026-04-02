@@ -7,14 +7,14 @@ nav_order: 1
 
 # Project David Core
 
-> This guide is for engineers who want to run Project David from source, contribute to the codebase, or deploy custom builds. If you want the fastest path to a running stack, see [Project David Platform](/docs/platform-overview) instead.
+> This guide is for engineers who want to run Project David from source, contribute to the codebase, or deploy custom builds. For the fastest path to a running stack, see [Project David Platform](/docs/platform-overview) instead.
 
-Project David Core is the runtime engine of the sovereign AI stack — a full-scale, containerised LLM orchestration platform built around the same primitives as the OpenAI Assistants API: **Assistants, Threads, Messages, Runs, and Tools** — without the lock-in.
+Project David Core is the runtime engine of the sovereign AI stack: a full-scale, containerised LLM orchestration platform built around the same primitives as the OpenAI Assistants API: **Assistants, Threads, Messages, Runs, and Tools**, without the lock-in.
 
-- **Provider agnostic** — Hyperbolic, TogetherAI, Ollama, or any OpenAI-compatible endpoint
-- **Every model** — hosted APIs today, local weights via Sovereign Forge tomorrow
-- **Your infrastructure** — fully self-hostable, GDPR compliant, security audited
-- **Production grade** — sandboxed code execution (FireJail PTY), multi-agent delegation, file serving with signed URLs, real-time streaming
+- **Provider agnostic:** Hyperbolic, TogetherAI, Ollama, or any OpenAI-compatible endpoint
+- **Every model:** hosted APIs today, local weights via Sovereign Forge tomorrow
+- **Your infrastructure:** fully self-hostable, GDPR compliant, security audited
+- **Production grade:** sandboxed code execution (FireJail PTY), multi-agent delegation, file serving with signed URLs, real-time streaming
 
 ---
 
@@ -25,7 +25,7 @@ Project David Core is the runtime engine of the sovereign AI stack — a full-sc
 | Assistants / Threads / Runs primitives | ✅ | ❌ | ✅ |
 | Provider agnostic | ❌ | Partial | ✅ |
 | Local model support | ❌ | Partial | ✅ |
-| Raw weights → orchestration | ❌ | ❌ | ✅ |
+| Raw weights to orchestration | ❌ | ❌ | ✅ |
 | Sandboxed code execution | ✅ Black box | ❌ | ✅ FireJail PTY |
 | Multi-agent delegation | Limited | ❌ | ✅ |
 | Self-hostable | ❌ | ✅ | ✅ |
@@ -48,7 +48,7 @@ Project David Core is the runtime engine of the sovereign AI stack — a full-sc
 - Git
 - Docker and Docker Compose
 - Python 3.10+
-- 8GB RAM minimum (16GB recommended for GPU inference)
+- 8 GB RAM minimum (16 GB recommended for GPU inference)
 
 ---
 
@@ -73,7 +73,7 @@ pip install -e .
 platform-api docker-manager --mode up
 ```
 
-> On first run, Project David generates a `.env` file containing unique locally-generated secrets — database passwords, signing keys, and service credentials. This file is never committed to version control. The Docker Compose stack is fully wired to these secrets automatically.
+> On first run, Project David generates a `.env` file containing unique locally-generated secrets: database passwords, signing keys, and service credentials. This file is never committed to version control. The Docker Compose stack is fully wired to these secrets automatically.
 
 **4. Update configuration variables.**
 
@@ -147,7 +147,7 @@ platform-api docker-manager bootstrap-admin
 
 The new key will be printed once. Copy it immediately.
 
-> This operation only deletes the API key record — it does not delete the admin user or any associated data.
+> This operation only deletes the API key record. It does not delete the admin user or any associated data.
 
 ---
 
@@ -184,48 +184,46 @@ print(api_key.plain_key)
 platform-api docker-manager --mode up
 ```
 
-Starts the core platform — API, database, sandbox, vector search, web search, observability.
+Starts the core platform: API, database, sandbox, vector search, web search, and observability.
 
-### With GPU inference
+### With Ollama
 
 ```bash
-# Ollama only
 platform-api docker-manager --mode up --ollama
-
-# vLLM only (static inference server)
-platform-api docker-manager --mode up --vllm
-
-# Both Ollama and vLLM
-platform-api docker-manager --mode up --gpu
 ```
 
-Requires NVIDIA GPU and nvidia-container-toolkit.
+Starts the Ollama local inference server alongside the base stack. Requires NVIDIA GPU and nvidia-container-toolkit.
 
-### With Sovereign Forge (training pipeline)
+### With Sovereign Forge
 
 ```bash
-# Training stack + Ray cluster
+# Training pipeline and Ray-managed vLLM inference
 platform-api docker-manager --mode up --training
 
-# Full sovereign stack — Ollama + static vLLM + training
-platform-api docker-manager --mode up --gpu --training
+# Sovereign Forge plus Ollama
+platform-api docker-manager --mode up --training --ollama
 ```
 
-> `--training` starts the training API, the Ray-based training worker, and the DeploymentSupervisor actor. It does **not** start a static vLLM container — instead, the DeploymentSupervisor dynamically spawns dedicated `pd_vllm_*` inference containers for each active deployment as models are activated via the SDK. Use `--gpu --training` if you also want Ollama and a static vLLM server running alongside.
+The `--training` flag starts three additional containers: `training-api`, `training-worker`, and `inference-worker`.
+
+`inference-worker` is the Ray HEAD node. It owns the GPU, runs Ray Serve, and hosts the `InferenceReconciler`. All vLLM inference is managed here via Ray Serve deployments. The `InferenceReconciler` polls the `inference_deployments` table every 20 seconds and reconciles Ray Serve state accordingly. Models become available at `http://inference_worker:8000/vllm_dep_{deployment_id}`.
+
+`training-worker` is a Redis-driven subprocess runner. It pops jobs from the `training_jobs` queue and executes them as subprocesses using Unsloth. It does not participate in the Ray cluster.
+
+> On single-GPU machines, training and inference cannot run simultaneously. Call `models.deactivate_all()` via the SDK before submitting a training job, then reactivate after training completes.
 
 Requires NVIDIA GPU and nvidia-container-toolkit.
 
 ---
 
-## How Inference Containers Are Spawned
+## How Inference Deployments Work
 
-When `--training` is active, the `DeploymentSupervisor` Ray actor runs continuously inside the training worker. Every 20 seconds it queries the `inference_deployments` table and reconciles container state:
+When `--training` is active, the `InferenceReconciler` inside `inference-worker` runs continuously. Every 20 seconds it queries the `inference_deployments` table and reconciles Ray Serve state:
 
-- If a deployment is marked `pending` or its container has stopped, the supervisor spawns a new `pd_vllm_{deployment_id}` Docker container with the correct base model, LoRA adapter, and `tensor_parallel_size`.
-- Container IPs are written back to the ledger so the API can route inference requests to the correct instance.
-- Port conflicts are resolved automatically — any container holding the target port is evicted before the new one starts.
+- If a deployment is marked `pending` and no corresponding Ray Serve app exists, the reconciler calls `serve.run(VLLMDeployment)` to deploy the model.
+- If a Ray Serve app exists but has no corresponding database record, the reconciler tears it down and releases the GPU reservation.
 
-This means vLLM instances come up and go down in response to SDK-driven deployment activations, not CLI flags.
+Deployments are driven entirely by SDK calls, not CLI flags. See [Model Activation](/docs/admin-model-activation) for the full lifecycle.
 
 ---
 
@@ -238,14 +236,12 @@ This means vLLM instances come up and go down in response to SDK-driven deployme
 | `--mode build` | Build images only |
 | `--mode both` | Build then start |
 | `--mode logs` | Show service logs |
-| `--training` | Start Sovereign Forge — training API, Ray worker, DeploymentSupervisor. Requires NVIDIA GPU |
-| `--gpu` | Start Ollama + static vLLM. Requires NVIDIA GPU |
-| `--ollama` | Start Ollama only. Requires NVIDIA GPU |
-| `--vllm` | Start static vLLM server only. Requires NVIDIA GPU |
+| `--training` | Start Sovereign Forge: training-api, training-worker, inference-worker. Requires NVIDIA GPU |
+| `--ollama` | Start Ollama local inference. Requires NVIDIA GPU |
 | `--no-cache` | Force rebuild without Docker cache |
 | `--build-before-up` | Build images before starting |
 | `--force-recreate` | Recreate all containers |
-| `--nuke` | Destroy all stack data — requires typed confirmation |
+| `--nuke` | Destroy all stack data. Requires typed confirmation |
 | `--services` | Start specific services only |
 | `--exclude` / `-x` | Exclude specific services |
 | `--down` | Stop before starting |
@@ -268,40 +264,44 @@ Project David intentionally uses two distinct CLI entry points:
 
 | CLI | Entry point | Layer |
 |---|---|---|
-| Core | `platform-api docker-manager` | Source deployment — running from cloned repo |
-| Platform | `pdavid` | Container deployment — running from pip-installed platform package |
+| Core | `platform-api docker-manager` | Source deployment, running from cloned repo |
+| Platform | `pdavid` | Container deployment, running from pip-installed platform package |
 
-This distinction is deliberate. When a developer runs `platform-api docker-manager` they know they are operating directly on the core runtime. When they run `pdavid` they are operating the containerised platform layer. There is no ambiguity about which layer is being managed.
+This distinction is deliberate. When a developer runs `platform-api docker-manager` they are operating directly on the core runtime. When they run `pdavid` they are operating the containerised platform layer. There is no ambiguity about which layer is being managed.
 
 ---
 
 ## Services
 
-Project David Core comprises the following services, all orchestrated via Docker Compose:
+Project David Core comprises the following services, orchestrated via Docker Compose:
 
 | Service | Role |
 |---|---|
-| API server | REST API — assistants, threads, runs, tools, inference |
-| MySQL | Persistent storage — all entities and state |
-| Redis | Async job broker — run queue and streaming |
-| Sandbox | FireJail PTY — isolated code execution |
-| Qdrant | Vector search — file search and RAG |
-| Ollama | Local GPU inference — runs models on your hardware |
-| vLLM (static) | High-throughput inference — started via `--vllm` or `--gpu` |
-| vLLM (dynamic) | Per-deployment inference containers — spawned by DeploymentSupervisor when `--training` is active |
-| Samba | Shared file store — datasets and model adapters |
-| SearXNG | Web search — agent tool integration |
+| api | REST API: assistants, threads, runs, tools, inference routing |
+| db | MySQL 8.0: persistent storage for all entities and state |
+| redis | Async job broker: run queue, streaming, training job queue |
+| sandbox | FireJail PTY: isolated code execution |
+| qdrant | Vector search: file search and RAG |
+| ollama | Local GPU inference via Ollama. Profile: ai |
+| training-api | Fine-tuning REST API: datasets, jobs, model activation. Profile: training |
+| training-worker | Redis-driven subprocess trainer. Profile: training |
+| inference-worker | Ray HEAD node: Ray Serve, VLLMDeployment, InferenceReconciler. Profile: training |
+| samba | Shared file store: datasets and LoRA adapters |
+| searxng | Web search for agent tool integration |
+| nginx | Reverse proxy, single public entry point on port 80 |
 
 ---
 
 ## Related
 
-- [Project David Platform](/docs/platform-overview) — containerised deployment, no source required
-- [SDK Quick Start](/docs/sdk-quick-start) — build your first assistant once the stack is running
+- [Project David Platform](/docs/platform-overview): containerised deployment, no source required
+- [SDK Quick Start](/docs/sdk-quick-start): build your first assistant once the stack is running
+- [Model Activation](/docs/admin-model-activation): deploy a locally hosted model for inference
+- [Ray and the inference worker](/docs/admin-ray-inference): dashboard navigation and log interpretation
 
 ---
 
 ## License
 
 Distributed under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/).
-Commercial use requires a separate licence — contact [licensing@projectdavid.co.uk](mailto:licensing@projectdavid.co.uk).
+Commercial use requires a separate licence. Contact [licensing@projectdavid.co.uk](mailto:licensing@projectdavid.co.uk).

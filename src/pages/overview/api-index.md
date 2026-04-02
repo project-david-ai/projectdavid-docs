@@ -60,3 +60,4 @@ Commercial deployments require a separate licence. This includes production use 
 - [Project David Core](/docs/core-overview): run the full stack from source
 - [Project David Platform](/docs/platform-overview): containerised deployment via pip, no source required
 - [Sovereign Forge](/docs/fine-tuning-pipeline): fine-tune open weights models and serve them from the same runtime
+- [GitHub](https://github.com/project-david-ai): source code, issues, and contributions

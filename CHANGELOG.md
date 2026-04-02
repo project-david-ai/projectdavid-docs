@@ -1,3 +1,10 @@
+# [1.16.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.15.0...v1.16.0) (2026-04-02)
+
+
+### Features
+
+* **docs:** add Fuse.js search, refresh sidebar design, fix categoryDisplayNames import ([da6037a](https://github.com/project-david-ai/projectdavid-docs/commit/da6037ae37654f02406c20b4ec799cd63aaad054))
+
 # [1.15.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.14.0...v1.15.0) (2026-04-01)
 
 

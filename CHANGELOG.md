@@ -1,3 +1,10 @@
+## [1.16.1](https://github.com/project-david-ai/projectdavid-docs/compare/v1.16.0...v1.16.1) (2026-04-02)
+
+
+### Bug Fixes
+
+* **docs:** trigger build ([0d74aa1](https://github.com/project-david-ai/projectdavid-docs/commit/0d74aa1c4f56e662ba71f74d12dc0a230c04fe1b))
+
 # [1.16.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.15.0...v1.16.0) (2026-04-02)
 
 

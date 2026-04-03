@@ -8,54 +8,57 @@
     </marker>
   </defs>
 
+  <!-- Background -->
+  <rect x="0" y="0" width="680" height="500" fill="#ffffff"/>
+
   <!-- SDK / Client -->
   <rect x="250" y="20" width="180" height="44" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
-  <text x="340" y="42" text-anchor="middle" dominant-baseline="central" font-family="'Anthropic Sans', sans-serif" font-size="14" font-weight="500" fill="#444441">SDK / client</text>
+  <text x="340" y="42" text-anchor="middle" dominant-baseline="central" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="500" fill="#444441">SDK / client</text>
 
   <!-- Arrow: client to API -->
   <line x1="340" y1="64" x2="340" y2="110" stroke="#888780" stroke-width="1" marker-end="url(#arr)"/>
 
   <!-- Project David API -->
   <rect x="180" y="110" width="280" height="56" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
-  <text x="320" y="131" text-anchor="middle" dominant-baseline="central" font-family="'Anthropic Sans', sans-serif" font-size="14" font-weight="500" fill="#444441">Project David API</text>
-  <text x="320" y="151" text-anchor="middle" dominant-baseline="central" font-family="'Anthropic Sans', sans-serif" font-size="12" fill="#5F5E5A">routes · templates · streams</text>
+  <text x="320" y="131" text-anchor="middle" dominant-baseline="central" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="500" fill="#444441">Project David API</text>
+  <text x="320" y="151" text-anchor="middle" dominant-baseline="central" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12" fill="#5F5E5A">routes · templates · streams</text>
 
   <!-- Mesh Resolver -->
   <rect x="504" y="118" width="148" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <text x="578" y="133" text-anchor="middle" dominant-baseline="central" font-family="'Anthropic Sans', sans-serif" font-size="13" font-weight="500" fill="#085041">mesh resolver</text>
-  <text x="578" y="149" text-anchor="middle" dominant-baseline="central" font-family="'Anthropic Sans', sans-serif" font-size="11" fill="#0F6E56">finds endpoint</text>
+  <text x="578" y="133" text-anchor="middle" dominant-baseline="central" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#085041">mesh resolver</text>
+  <text x="578" y="149" text-anchor="middle" dominant-baseline="central" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" fill="#0F6E56">finds endpoint</text>
 
   <!-- Arrow: API to Mesh Resolver -->
   <line x1="460" y1="133" x2="504" y2="133" stroke="#0F6E56" stroke-width="1" marker-end="url(#arr-teal)"/>
-  <!-- Dashed return: Mesh Resolver to API -->
+  <!-- Dashed return -->
   <line x1="504" y1="145" x2="460" y2="145" stroke="#0F6E56" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr-teal)"/>
 
-  <!-- Arrow: API to Ray Serve with label -->
+  <!-- Arrow: API to Ray Serve -->
   <line x1="320" y1="166" x2="320" y2="222" stroke="#888780" stroke-width="1" marker-end="url(#arr)"/>
-  <text x="330" y="197" font-family="'Anthropic Sans', sans-serif" font-size="11" fill="#888780">POST /vllm_dep_...</text>
+  <text x="330" y="197" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" fill="#888780">POST /vllm_dep_...</text>
 
   <!-- Ray Serve cluster container -->
-  <rect x="40" y="222" width="600" height="182" rx="16" fill="#E1F5EE" fill-opacity="0.25" stroke="#0F6E56" stroke-width="1" stroke-dasharray="6 4"/>
-  <text x="340" y="246" text-anchor="middle" font-family="'Anthropic Sans', sans-serif" font-size="12" font-weight="500" fill="#0F6E56">Ray Serve cluster</text>
+  <rect x="40" y="222" width="600" height="182" rx="16" fill="#E1F5EE" fill-opacity="0.4" stroke="#0F6E56" stroke-width="1" stroke-dasharray="6 4"/>
+  <text x="340" y="246" text-anchor="middle" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12" font-weight="500" fill="#0F6E56">Ray Serve cluster</text>
 
   <!-- Base model deployment -->
   <rect x="68" y="258" width="232" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-  <text x="184" y="279" text-anchor="middle" dominant-baseline="central" font-family="'Anthropic Sans', sans-serif" font-size="14" font-weight="500" fill="#3C3489">base model</text>
-  <text x="184" y="299" text-anchor="middle" dominant-baseline="central" font-family="'Anthropic Sans', sans-serif" font-size="12" fill="#534AB7">any HF open-weight model</text>
+  <text x="184" y="279" text-anchor="middle" dominant-baseline="central" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="500" fill="#3C3489">base model</text>
+  <text x="184" y="299" text-anchor="middle" dominant-baseline="central" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12" fill="#534AB7">any HF open-weight model</text>
 
   <!-- Fine-tuned model deployment -->
   <rect x="380" y="258" width="232" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-  <text x="496" y="279" text-anchor="middle" dominant-baseline="central" font-family="'Anthropic Sans', sans-serif" font-size="14" font-weight="500" fill="#3C3489">fine-tuned model</text>
-  <text x="496" y="299" text-anchor="middle" dominant-baseline="central" font-family="'Anthropic Sans', sans-serif" font-size="12" fill="#534AB7">LoRA adapter + base weights</text>
+  <text x="496" y="279" text-anchor="middle" dominant-baseline="central" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="500" fill="#3C3489">fine-tuned model</text>
+  <text x="496" y="299" text-anchor="middle" dominant-baseline="central" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12" fill="#534AB7">LoRA adapter + base weights</text>
 
-  <!-- Merge lines from deployments to GPU -->
+  <!-- Merge lines to GPU -->
   <polyline points="184,314 184,368 340,368" fill="none" stroke="#888780" stroke-width="1"/>
   <polyline points="496,314 496,368 340,368" fill="none" stroke="#888780" stroke-width="1"/>
   <line x1="340" y1="368" x2="340" y2="408" stroke="#888780" stroke-width="1" marker-end="url(#arr)"/>
 
   <!-- GPU -->
   <rect x="200" y="408" width="280" height="52" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <text x="340" y="428" text-anchor="middle" dominant-baseline="central" font-family="'Anthropic Sans', sans-serif" font-size="14" font-weight="500" fill="#633806">GPU</text>
-  <text x="340" y="448" text-anchor="middle" dominant-baseline="central" font-family="'Anthropic Sans', sans-serif" font-size="12" fill="#854F0B">vLLM AsyncLLMEngine</text>
+  <text x="340" y="428" text-anchor="middle" dominant-baseline="central" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="500" fill="#633806">GPU</text>
+  <text x="340" y="448" text-anchor="middle" dominant-baseline="central" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12" fill="#854F0B">vLLM AsyncLLMEngine</text>
 
 </svg>

@@ -21,10 +21,10 @@ The deeper benefit is scalability. Ray Serve is cluster-aware, which means as yo
 
 
 
-![Project David Stack](https://github.com/project-david-ai/projectdavid-docs/blob/main/public/vllm-ray-serve-architecture.svg)
+## Architecture
 
 
-
+![Ray Serve vLLM architecture](/vllm-ray-serve-architecture.svg)
 ---
 
 

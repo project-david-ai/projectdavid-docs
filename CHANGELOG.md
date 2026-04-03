@@ -1,3 +1,10 @@
+## [1.17.1](https://github.com/project-david-ai/projectdavid-docs/compare/v1.17.0...v1.17.1) (2026-04-03)
+
+
+### Bug Fixes
+
+* **docs:** resolve vLLM architecture SVG rendering in MarkdownPage ([d1fee8c](https://github.com/project-david-ai/projectdavid-docs/commit/d1fee8c14019671c5b83942db2f5df13a5a0cbbf))
+
 # [1.17.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.16.1...v1.17.0) (2026-04-03)
 
 

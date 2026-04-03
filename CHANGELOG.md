@@ -1,3 +1,10 @@
+# [1.17.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.16.1...v1.17.0) (2026-04-03)
+
+
+### Features
+
+* **admin-vllm:** complete vLLM administration guide ([a819f61](https://github.com/project-david-ai/projectdavid-docs/commit/a819f612778434bb0e85b4d32a27b0bc627ebc74))
+
 ## [1.16.1](https://github.com/project-david-ai/projectdavid-docs/compare/v1.16.0...v1.16.1) (2026-04-02)
 
 

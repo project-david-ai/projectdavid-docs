@@ -1,3 +1,10 @@
+# [1.18.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.17.1...v1.18.0) (2026-04-07)
+
+
+### Features
+
+* **docs:** add licensing page, expand vLLM clustering docs with RunPod section, add pipeline diagram to datasets page ([af48b2d](https://github.com/project-david-ai/projectdavid-docs/commit/af48b2dece8e7fe61c9170b6e840277c535d7c42))
+
 ## [1.17.1](https://github.com/project-david-ai/projectdavid-docs/compare/v1.17.0...v1.17.1) (2026-04-03)
 
 

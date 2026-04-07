@@ -179,6 +179,11 @@ A dataset in `failed` status cannot be used for training. Create a new dataset w
 
 ---
 
+
+![Sovereign Forge fine-tuning pipeline](/projectdavid-forge-fine-tuning-pipeline.svg)
+
+
+---
 ## Full end-to-end example
 
 ```python

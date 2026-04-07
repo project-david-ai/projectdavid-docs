@@ -8,6 +8,7 @@
 
 const categoryDisplayNames = {
   'overview'              : 'OVERVIEW',
+  'commercial'            : 'COMMERCIAL',
   'core'                  : 'PROJECT DAVID CORE',
   'projectdavid-platform' : 'PROJECT DAVID PLATFORM',
   'sdk'                   : 'SDK',
@@ -22,18 +23,18 @@ const categoryDisplayNames = {
 
 const categoryOrder = {
   'overview'              : 1,
-  'core'                  : 2,
-  'projectdavid-platform' : 3,
-  'sdk'                   : 4,
-  'fine-tuning'           : 5,
-  'admin'                 : 6,
-  'endpoints'             : 7,
-  'providers'             : 8,
-  'infrastructure'        : 9,
-  'api-infra'             : 10,
-  'architecture'          : 11,
+  'commercial'            : 2,
+  'core'                  : 3,
+  'projectdavid-platform' : 4,
+  'sdk'                   : 5,
+  'fine-tuning'           : 6,
+  'admin'                 : 7,
+  'endpoints'             : 8,
+  'providers'             : 9,
+  'infrastructure'        : 10,
+  'api-infra'             : 11,
+  'architecture'          : 12,
 };
-
 const hiddenCategories = new Set(['algorithms']);
 
 /* ---------- tiny front-matter parser (keeps bundle slim) ---------- */

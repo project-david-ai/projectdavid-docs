@@ -13,9 +13,6 @@ nav_order: 1
 
 ---
 
-## Architecture
-
-![Project David Stack](https://raw.githubusercontent.com/project-david-ai/projectdavid-platform/master/assets/svg/projectdavid-stack.svg)
 
 > The platform deploys the same stack as Core. The difference is the deployment path — pip install instead of git clone.
 
@@ -23,7 +20,7 @@ nav_order: 1
 
 ## How It All Connects
 
-![Project David Pipeline](https://raw.githubusercontent.com/project-david-ai/projectdavid-core/main/assets/svg/projectdavid-pipeline.svg)
+![Core to Platform Pipeline](/projectdavid-core-to-platform-pipeline.svg)
 
 > Every component of the sovereign AI stack — from SDK client through inference provider to the streaming response — in a single view. This is what `pdavid --mode up` brings to life.
 

@@ -37,7 +37,8 @@ Project David Core is the runtime engine of the sovereign AI stack: a full-scale
 
 ## Architecture
 
-![Project David Stack](https://raw.githubusercontent.com/project-david-ai/projectdavid-platform/master/assets/svg/projectdavid-stack.svg)
+![Project David Stack](/projectdavid-stack.svg)
+
 
 > The same stack runs whether deployed via Core (source) or Platform (containerised). The difference is the deployment path, not the infrastructure.
 
@@ -128,13 +129,13 @@ docker exec -it my_mysql_cosmic_catalyst mysql -u api_user -p entities_db
 
 **2. Find the existing admin key prefix.**
 
-```sql
+```text
 SELECT prefix, key_name, created_at FROM api_keys;
 ```
 
 **3. Delete the existing admin key.**
 
-```sql
+```text
 DELETE FROM api_keys WHERE prefix = 'ad_xxxxx';
 EXIT;
 ```

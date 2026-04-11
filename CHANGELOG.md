@@ -1,3 +1,10 @@
+# [1.20.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.19.0...v1.20.0) (2026-04-11)
+
+
+### Features
+
+* **docs:** update stack diagram with pd_router Rust hot path, fix activation pipeline SVG anchor links, add sovereign cluster architecture diagram ([545f8a9](https://github.com/project-david-ai/projectdavid-docs/commit/545f8a9bff16970a8a33236a0e608ef803b42567))
+
 # [1.19.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.18.0...v1.19.0) (2026-04-11)
 
 

@@ -1,3 +1,10 @@
+# [1.19.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.18.0...v1.19.0) (2026-04-11)
+
+
+### Features
+
+* **docs:** add sovereign cluster guide, model activation guide, expand vLLM doc with inference hot path and cluster cross-links ([00e5d41](https://github.com/project-david-ai/projectdavid-docs/commit/00e5d4122c0cf9a10c3df2dd841c238eedf0b856))
+
 # [1.18.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.17.1...v1.18.0) (2026-04-07)
 
 

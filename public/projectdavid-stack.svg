@@ -15,6 +15,7 @@
       .plat-sub { font-family: Georgia, serif; font-size: 12px; fill: #534ab7; }
       .core-box { fill: #faeeda; stroke: #ba7517; stroke-width: 1.5px; stroke-dasharray: 5 3; }
       .svc-api    { fill: #dbeafe; stroke: #185fa5; stroke-width: 0.75px; }
+      .svc-teal   { fill: #e1f5ee; stroke: #0f6e56; stroke-width: 0.75px; }
       .svc-data   { fill: #ede9fe; stroke: #534ab7; stroke-width: 0.75px; }
       .svc-search { fill: #fef3c7; stroke: #ba7517; stroke-width: 0.75px; }
       .svc-obs    { fill: #ede9fe; stroke: #534ab7; stroke-width: 0.75px; }
@@ -22,7 +23,9 @@
       .svc-gpu    { fill: #fdf2f8; stroke: #ec4899; stroke-width: 0.75px; stroke-dasharray: 4 2; }
       .svc-ray    { fill: #f0fdf4; stroke: #16a34a; stroke-width: 0.75px; }
       .svc-label  { font-family: Georgia, serif; font-size: 11px; font-weight: 600; fill: #1e293b; }
+      .svc-label-teal { font-family: Georgia, serif; font-size: 11px; font-weight: 600; fill: #085041; }
       .svc-sub    { font-family: Georgia, serif; font-size: 10px; fill: #64748b; }
+      .svc-sub-teal { font-family: Georgia, serif; font-size: 10px; fill: #0f6e56; }
       .svc-sub-grn { font-family: Georgia, serif; font-size: 10px; fill: #16a34a; }
       .inf-box    { fill: #f1efe8; stroke: #5f5e5a; stroke-width: 0.75px; }
       .inf-label  { font-family: Georgia, serif; font-size: 11px; font-weight: 600; fill: #2c2c2a; }
@@ -61,16 +64,20 @@
   <!-- nginx -->
   <rect x="66" y="356" width="768" height="38" rx="6" class="svc-api"/>
   <text x="450" y="370" text-anchor="middle" class="svc-label">nginx</text>
-  <text x="450" y="384" text-anchor="middle" class="svc-sub">Reverse proxy · single public entry point · port 80 · routes /v1/fine-tuned-models/ and /v1/registry/ to training-api</text>
+  <text x="450" y="384" text-anchor="middle" class="svc-sub">Reverse proxy · port 80 · /v1/completions → pd_router :9100 · training routes → training-api</text>
 
-  <!-- Row 1: api + sandbox -->
-  <rect x="66" y="404" width="372" height="54" rx="6" class="svc-api"/>
-  <text x="252" y="424" text-anchor="middle" class="svc-label">api</text>
-  <text x="252" y="440" text-anchor="middle" class="svc-sub">FastAPI · assistants · inference routing · tools · VLLM_BASE_URL → inference-worker</text>
+  <!-- Row 1: pd_router + api + sandbox (three boxes) -->
+  <rect x="66" y="404" width="250" height="54" rx="6" class="svc-teal"/>
+  <text x="191" y="424" text-anchor="middle" class="svc-label-teal">pd_router</text>
+  <text x="191" y="440" text-anchor="middle" class="svc-sub-teal">Rust · /v1/completions · SSE framing · :9100</text>
 
-  <rect x="462" y="404" width="372" height="54" rx="6" class="svc-api"/>
-  <text x="648" y="424" text-anchor="middle" class="svc-label">sandbox</text>
-  <text x="648" y="440" text-anchor="middle" class="svc-sub">Secure code execution · SYS_ADMIN · /dev/fuse</text>
+  <rect x="324" y="404" width="250" height="54" rx="6" class="svc-api"/>
+  <text x="449" y="424" text-anchor="middle" class="svc-label">api</text>
+  <text x="449" y="440" text-anchor="middle" class="svc-sub">FastAPI · assistants · inference routing · tools · VLLM_BASE_URL → inference-worker</text>
+
+  <rect x="582" y="404" width="252" height="54" rx="6" class="svc-api"/>
+  <text x="708" y="424" text-anchor="middle" class="svc-label">sandbox</text>
+  <text x="708" y="440" text-anchor="middle" class="svc-sub">Secure code execution · SYS_ADMIN · /dev/fuse</text>
 
   <!-- Row 2: training-api + training-worker -->
   <rect x="66" y="468" width="372" height="54" rx="6" class="svc-api"/>

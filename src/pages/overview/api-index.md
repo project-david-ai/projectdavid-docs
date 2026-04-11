@@ -16,7 +16,7 @@ If you have used the OpenAI Assistants API, you already know how to use this. Th
 
 ## Architecture
 
-![Project David Stack](https://raw.githubusercontent.com/project-david-ai/projectdavid-platform/master/assets/svg/projectdavid-stack.svg)
+![Project David Stack](/projectdavid-stack.svg)
 
 ---
 

@@ -13,7 +13,15 @@ The cluster is built around two roles. The HEAD node is your primary machine. It
 
 A single-node deployment is a cluster of one. Everything here applies to it. The difference when you add workers is that the same deployment commands, the same activation scripts, and the same `pdavid ray` tooling continue to work without modification. Ray handles the distribution transparently.
 
+
+![Sovereign Cluster inference architecture](/vllm-inference-hot-path.svg)
+
 ---
+
+
+
+
+
 
 ## Single Node
 

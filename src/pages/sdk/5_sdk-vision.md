@@ -73,21 +73,26 @@ stored in the message record itself.
 
 ## Sending a Local Image (Base64)
 
-Read a local file and encode it as a base64 data URI.
+Read a local file and encode it as a base64 data URI. Resize the image before encoding
+to keep token usage predictable — a maximum of 512px on the longest side is a reliable
+starting point for most models.
 
 ```python
 import base64
+import io
+from PIL import Image
 from projectdavid import Entity
 
 client = Entity()
 
 
-def encode_image(path: str) -> str:
-    with open(path, "rb") as f:
-        return base64.b64encode(f.read()).decode("utf-8")
+def encode_image(path: str, max_size: int = 512) -> str:
+    img = Image.open(path).convert("RGB")
+    img.thumbnail((max_size, max_size), Image.LANCZOS)
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=85)
+    return f"data:image/jpeg;base64,{base64.b64encode(buf.getvalue()).decode()}"
 
-
-b64 = encode_image("chart.png")
 
 thread = client.threads.create_thread()
 
@@ -103,7 +108,7 @@ message = client.messages.create_message(
         {
             "type": "image_url",
             "image_url": {
-                "url": f"data:image/png;base64,{b64}"
+                "url": encode_image("chart.png")
             }
         }
     ]
@@ -162,7 +167,7 @@ message = client.messages.create_message(
         {
             "type": "image_url",
             "image_url": {
-                "url": f"data:image/png;base64,{b64}"
+                "url": encode_image("chart.png")
             }
         }
     ]
@@ -203,10 +208,12 @@ Images: 2 resolved
 
 ## Notes
 
-**Image expiry** — uploaded images have a TTL. If an image expires before inference
-runs, it is silently skipped and the message falls back to its plain text content so
-the model still receives the prompt. Check `message.attachments` to verify file IDs
-are present before triggering a run if timing is a concern.
+**Image size** — resize images to a maximum of 512px on the longest side before encoding.
+Large images generate significantly more tokens and may exceed the model's context limit,
+causing the request to fail. The `encode_image` helper above handles this automatically.
+
+**Image expiry** — uploaded images have a TTL. Check `message.attachments` to verify
+file IDs are present before triggering a run if timing is a concern.
 
 **CDN redirects** — URLs that return a `302` redirect (such as Picsum or many CDN
 hosts) are followed automatically. No special handling is required.

@@ -1,3 +1,10 @@
+# [1.21.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.20.0...v1.21.0) (2026-04-13)
+
+
+### Features
+
+* **admin:** add model activation guide — prerequisites, registration, activation, hyperparameter reference, vision models, and quickstart ([8479864](https://github.com/project-david-ai/projectdavid-docs/commit/84798644be1fc3f2876b020bb8101f508784328a))
+
 # [1.20.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.19.0...v1.20.0) (2026-04-11)
 
 

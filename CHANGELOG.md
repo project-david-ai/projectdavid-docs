@@ -1,3 +1,10 @@
+# [1.22.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.21.0...v1.22.0) (2026-04-13)
+
+
+### Features
+
+* **sdk:** update vision guide — add image resize guidance and update encode_image helper ([9536b78](https://github.com/project-david-ai/projectdavid-docs/commit/9536b788b150e05481191518e0b15d05a31019b4))
+
 # [1.21.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.20.0...v1.21.0) (2026-04-13)
 
 

@@ -17,9 +17,9 @@ Datasets are user-scoped — each user can only access their own records.
 
 ## Supported formats
 
-Project David accepts datasets in **ShareGPT** or **ChatML** format. Both are handled transparently — the training pipeline normalises them at runtime.
+Project David accepts datasets in one of four formats. The `fmt` parameter you pass to `create()` selects which validator runs during preparation.
 
-**ShareGPT** (recommended):
+**ShareGPT** (recommended for conversational fine-tunes):
 ```json
 {"conversations": [{"from": "human", "value": "..."}, {"from": "gpt", "value": "..."}]}
 ```
@@ -28,6 +28,59 @@ Project David accepts datasets in **ShareGPT** or **ChatML** format. Both are ha
 ```json
 {"messages": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}
 ```
+
+**Alpaca**:
+```json
+{"instruction": "...", "input": "...", "output": "..."}
+```
+
+**JSONL** (permissive — any valid JSON-per-line):
+```json
+{"any": "structure", "you": "want"}
+```
+
+The named formats (`sharegpt`, `chatml`, `alpaca`) are validated for required fields during preparation. The `jsonl` format only checks that each line parses as JSON — use it when your data doesn't fit the named schemas, but expect downstream errors if the training framework can't interpret the structure.
+
+---
+
+## Starting from a public dataset
+
+Production fine-tunes are typically built on your own domain data — operational logs, customer interactions, internal knowledge bases. That is the case Sovereign Forge is designed for.
+
+If you're evaluating the pipeline and don't have a dataset to hand yet, HuggingFace hosts tens of thousands of public datasets you can start from. Download with the `datasets` library, convert to ShareGPT-formatted JSONL, then upload as normal.
+
+```python
+import json
+from datasets import load_dataset
+from projectdavid import Entity
+
+# Pull a public dataset
+hf_data = load_dataset("tatsu-lab/alpaca", split="train[:500]")
+
+# Convert each row to ShareGPT
+with open("alpaca_sharegpt.jsonl", "w", encoding="utf-8") as f:
+    for row in hf_data:
+        prompt = row["instruction"]
+        if row.get("input"):
+            prompt = f"{prompt}\n\n{row['input']}"
+        record = {
+            "conversations": [
+                {"from": "human", "value": prompt},
+                {"from": "gpt", "value": row["output"]},
+            ]
+        }
+        f.write(json.dumps(record) + "\n")
+
+# Upload to Sovereign Forge
+client = Entity()
+dataset = client.datasets.create(
+    file_path="alpaca_sharegpt.jsonl",
+    name="Alpaca (500 sample)",
+    fmt="sharegpt",
+)
+```
+
+The HuggingFace catalogue is useful for pipeline verification or as a starting base you intend to extend with your own data. For deployment, the data the model sees during fine-tuning should reflect the data it will see at inference — which is almost always proprietary.
 
 ---
 
@@ -80,7 +133,7 @@ client = Entity()
 dataset = client.datasets.create(
     file_path="my_data.jsonl",
     name="Specialized Knowledge Base",
-    fmt="jsonl",
+    fmt="sharegpt",
     description="Domain-specific Q&A pairs for fine-tuning.",
 )
 print(f"Dataset ID: {dataset.id}")
@@ -90,14 +143,14 @@ print(f"Dataset ID: {dataset.id}")
 |---|---|---|---|
 | `file_path` | `str` | ✅ | Local path to the `.jsonl` file. |
 | `name` | `str` | ✅ | Human-readable name for the dataset record. |
-| `fmt` | `str` | ✅ | File format — currently `"jsonl"`. |
+| `fmt` | `str` | ✅ | Schema validator to apply — one of `sharegpt`, `chatml`, `alpaca`, `jsonl`. |
 | `description` | `str` or `None` | — | Optional description stored on the record. |
 
 ---
 
 ## Prepare
 
-Trigger background validation and train/eval split computation. The dataset transitions through `pending` → `active` (or `failed`). Poll `retrieve` until the status is `active` before dispatching a training job.
+Trigger background validation and train/eval split computation. The dataset transitions through `pending` → `processing` → `active` (or `failed`). Poll `retrieve` until the status is `active` before dispatching a training job.
 
 ```python
 client.datasets.prepare(dataset.id)
@@ -121,6 +174,13 @@ while True:
     time.sleep(3)
 ```
 
+Or use the built-in helper:
+
+```python
+ds = client.datasets.wait_until_ready(dataset.id, timeout=300)
+print(f"✅ Ready — {ds.train_samples} train / {ds.eval_samples} eval samples")
+```
+
 ---
 
 ## Retrieve
@@ -138,7 +198,7 @@ print(ds.eval_samples)
 
 ## List
 
-Return all datasets for the current user. Optionally filter by status.
+Return all datasets for the current user. Optionally filter by status and paginate with `limit` and `offset`.
 
 ```python
 # All datasets
@@ -147,23 +207,54 @@ datasets = client.datasets.list()
 # Only active datasets
 datasets = client.datasets.list(status="active")
 
+# Page through results
+datasets = client.datasets.list(limit=10, offset=20)
+
 for ds in datasets.data:
     print(f"{ds.id}  {ds.status}  {ds.name}")
 ```
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `status` | `str` or `None` | `None` | Filter by status: `pending`, `active`, `failed`. |
+| `status` | `str` or `None` | `None` | Filter by status: `pending`, `processing`, `active`, `failed`, `deleted`. |
 | `limit` | `int` | `50` | Maximum records to return. |
+| `offset` | `int` | `0` | Pagination offset. |
 
 ---
 
 ## Delete
 
-Soft-delete a dataset. The record is marked deleted and excluded from future queries. The staged file on the Samba hub is not immediately removed.
+Datasets support two delete modes.
+
+**Soft delete (default).** Marks the record as deleted and excludes it from future queries. The Dataset row, the backing File row, and the staged file on the Samba hub are all preserved. Reversible by an administrator if needed.
 
 ```python
 client.datasets.delete(dataset_id="ds_abc123")
+```
+
+**Hard delete.** Permanently removes the Dataset row from the database and marks the backing File row for filesystem cleanup by the purge daemon. Irreversible.
+
+```python
+client.datasets.delete(dataset_id="ds_abc123", hard=True)
+```
+
+### Race guards
+
+Both modes refuse to delete a dataset that is in active use. The training service returns HTTP 409 Conflict in either of these cases:
+
+- The dataset is currently being prepared (`status=processing`). Wait for preparation to finish — or fail — before deleting.
+- The dataset is referenced by an active training job (status `queued`, `in_progress`, or `cancelling`). Cancel the job, or wait for it to reach a terminal state, before deleting.
+
+The 409 response includes a structured detail body listing the blocking jobs:
+
+```json
+{
+  "error": "Dataset 'ds_abc123' is in use by active training jobs.",
+  "blocking_jobs": [
+    {"job_id": "job_xyz", "status": "in_progress"}
+  ],
+  "hint": "Cancel or wait for these jobs before deleting the dataset."
+}
 ```
 
 ---
@@ -171,14 +262,22 @@ client.datasets.delete(dataset_id="ds_abc123")
 ## Dataset lifecycle
 
 ```
-create → pending → [prepare] → active → [training job dispatched]
-                             ↘ failed
+create → pending → [prepare] → processing → active → [training job dispatched]
+                                          ↘ failed
+                                              ↓
+                                          [delete soft]  → deleted
+                                          [delete hard]  → row removed
 ```
 
 A dataset in `failed` status cannot be used for training. Create a new dataset with a corrected file.
 
 ---
 
+
+![Sovereign Forge fine-tuning pipeline](/projectdavid-forge-fine-tuning-pipeline.svg)
+
+
+---
 ## Full end-to-end example
 
 ```python
@@ -191,7 +290,7 @@ client = Entity()
 dataset = client.datasets.create(
     file_path="my_data.jsonl",
     name="My Fine-Tuning Dataset",
-    fmt="jsonl",
+    fmt="sharegpt",
 )
 print(f"📦 Dataset ID: {dataset.id}")
 

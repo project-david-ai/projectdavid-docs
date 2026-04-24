@@ -1,3 +1,10 @@
+# [1.23.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.22.1...v1.23.0) (2026-04-24)
+
+
+### Features
+
+* **docs:** add fine-tuning pipeline SVG source file ([94dd234](https://github.com/project-david-ai/projectdavid-docs/commit/94dd23405c4136a26a9be4b95c3b73d9106e12e9))
+
 ## [1.22.1](https://github.com/project-david-ai/projectdavid-docs/compare/v1.22.0...v1.22.1) (2026-04-24)
 
 

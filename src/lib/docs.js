@@ -58,11 +58,23 @@ function simpleMatter(raw) {
   return { data, content: raw.slice(m[0].length) };
 }
 
-/* ---------- 1. grab every .md, .tex, .tla, .svg file (eager) ---------- */
+/* ---------- 1. grab every .md, .tex, .tla, .svg file (eager) ----------
+   SVGs are split out and loaded with the explicit ?raw query because
+   Vite's production build pipeline intercepts .svg files via its asset
+   handler — the `as: 'raw'` shortcut works in dev but is bypassed in
+   production, leaving SVGs absent from the bundled module map.
+   The explicit query forces raw-text loading in both dev and build. */
 const docModules = import.meta.glob(
-  '../pages/**/*.{md,tex,tla,svg}',
+  '../pages/**/*.{md,tex,tla}',
   { as: 'raw', eager: true }
 );
+
+const svgModules = import.meta.glob(
+  '../pages/**/*.svg',
+  { query: '?raw', import: 'default', eager: true }
+);
+
+const allModules = { ...docModules, ...svgModules };
 
 /* ---------- helper: strip extension safely ---------- */
 function stripExtension(filename) {
@@ -70,7 +82,7 @@ function stripExtension(filename) {
 }
 
 /* ---------- 2. build main { slug: { frontmatter, content, path } } map ---------- */
-export const pages = Object.entries(docModules).reduce((acc, [path, raw]) => {
+export const pages = Object.entries(allModules).reduce((acc, [path, raw]) => {
   const { data, content } = simpleMatter(raw);
 
   const filename = path.split('/').pop();
@@ -88,7 +100,7 @@ export const pages = Object.entries(docModules).reduce((acc, [path, raw]) => {
 /* ---------- 3. sidebar / grouped nav items ---------- */
 export const groupedNavItems = {};
 
-Object.entries(docModules).forEach(([path, raw]) => {
+Object.entries(allModules).forEach(([path, raw]) => {
   const { data } = simpleMatter(raw);
 
   // Per-page exclusion

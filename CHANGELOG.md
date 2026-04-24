@@ -1,3 +1,10 @@
+## [1.22.1](https://github.com/project-david-ai/projectdavid-docs/compare/v1.22.0...v1.22.1) (2026-04-24)
+
+
+### Bug Fixes
+
+* **docs:** SVG pages 404 in production due to Vite asset pipeline ([98c68ff](https://github.com/project-david-ai/projectdavid-docs/commit/98c68ff200e84fc0f511642b33fdd416fb4091ca))
+
 # [1.22.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.21.0...v1.22.0) (2026-04-13)
 
 

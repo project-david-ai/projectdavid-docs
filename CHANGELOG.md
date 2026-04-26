@@ -1,3 +1,10 @@
+## [1.23.1](https://github.com/project-david-ai/projectdavid-docs/compare/v1.23.0...v1.23.1) (2026-04-26)
+
+
+### Bug Fixes
+
+* **nginx:** simplify config for proxy topology — drop SSL termination, listen 80 only ([5bf647a](https://github.com/project-david-ai/projectdavid-docs/commit/5bf647a4a260ce10aedd81c366f57fdef4da1b11))
+
 # [1.23.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.22.1...v1.23.0) (2026-04-24)
 
 

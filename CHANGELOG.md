@@ -1,3 +1,10 @@
+# [1.24.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.23.1...v1.24.0) (2026-04-28)
+
+
+### Features
+
+* implement high-precision visitor tracking via persistent cookie and analytics beacon ([80f5ae0](https://github.com/project-david-ai/projectdavid-docs/commit/80f5ae0d02741ab1fc73ae7042407a40d6ca2397))
+
 ## [1.23.1](https://github.com/project-david-ai/projectdavid-docs/compare/v1.23.0...v1.23.1) (2026-04-26)
 
 

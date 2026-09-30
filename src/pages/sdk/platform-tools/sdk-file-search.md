@@ -39,7 +39,7 @@ load_dotenv()                                        # reads .env in cwd
 
 client = Entity(
     base_url=os.getenv("BASE_URL", "http://localhost:9000"),
-    api_key=os.getenv("ENTITIES_API_KEY"),
+    api_key=os.getenv("PROJECTDAVID_API_KEY"),
 )
 # --------------------------------------------------------------------- #
 # 1.  Create a vector store

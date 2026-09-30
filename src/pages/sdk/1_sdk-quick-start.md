@@ -37,7 +37,7 @@ load_dotenv()
 
 client = Entity(
     base_url=os.getenv("BASE_URL"),
-    api_key=os.getenv("ENTITIES_API_KEY"),
+    api_key=os.getenv("PROJECTDAVID_API_KEY"),
 )
 
 PROVIDER = "Hyperbolic"
@@ -126,7 +126,7 @@ load_dotenv()
 
 client = Entity(
     base_url=os.getenv("BASE_URL"),
-    api_key=os.getenv("ENTITIES_API_KEY"),
+    api_key=os.getenv("PROJECTDAVID_API_KEY"),
 )
 
 assistant = client.assistants.create_assistant(

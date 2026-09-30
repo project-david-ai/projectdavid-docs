@@ -28,7 +28,7 @@ load_dotenv()
 
 client = Entity(
 
-    api_key=os.getenv("ENTITIES_API_KEY"),
+    api_key=os.getenv("PROJECTDAVID_API_KEY"),
 )
 
 

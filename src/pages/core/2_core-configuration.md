@@ -79,7 +79,7 @@ Leave blank if you are not using these providers. The stack starts and runs with
 | `HYPERBOLIC_API_KEY` | Hyperbolic |
 | `DEEP_SEEK_API_KEY` | DeepSeek |
 | `ADMIN_API_KEY` | Set after bootstrapping admin — see [Quick Start](/docs/core-overview) |
-| `ENTITIES_API_KEY` | SDK user key |
+| `PROJECTDAVID_API_KEY` | SDK user key |
 | `ENTITIES_USER_ID` | SDK user ID |
 
 ---

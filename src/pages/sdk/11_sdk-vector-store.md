@@ -37,7 +37,7 @@ load_dotenv()
 
 client = Entity(
     base_url=os.getenv("BASE_URL", "http://localhost:9000"),
-    api_key=os.getenv("ENTITIES_API_KEY"),  # This is the entities user API Key
+    api_key=os.getenv("PROJECTDAVID_API_KEY"),  # This is the entities user API Key
 )
 
 # --------------------------
@@ -69,6 +69,7 @@ print("\n")
 # 4. Attach to Assistant (and enable tool!)
 # ----------------------------------------
 print("--- Updating Assistant ---")
+
 update_assistant = client.assistants.update_assistant(
     assistant_id="your_assistant_id_here",
     tools=[{"type": "file_search"}],  # 👈 CRITICAL: Tells the LLM the tool exists!

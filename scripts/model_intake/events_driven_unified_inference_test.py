@@ -52,7 +52,7 @@ CONFIG_PATH = root_dir / CONFIG_FILE_NAME
 
 # --- Global Constants ---
 BASE_URL = config.get("base_url") or os.getenv("BASE_URL", "http://localhost:9000")
-ENTITIES_API_KEY = config.get("entities_api_key") or os.getenv("ENTITIES_API_KEY")
+PROJECTDAVID_API_KEY = config.get("entities_api_key") or os.getenv("PROJECTDAVID_API_KEY")
 USER_ID = config.get("entities_user_id") or os.getenv("ENTITIES_USER_ID")
 report_name = config.get("report_file_name", "model_compatibility_report.md")
 REPORT_FILE = root_dir / report_name
@@ -187,7 +187,7 @@ class ModelTester:
         self.model_label = model_label
         self.model_id = config["id"]
         self.provider = config["provider"]
-        self.client = Entity(base_url=BASE_URL, api_key=ENTITIES_API_KEY)
+        self.client = Entity(base_url=BASE_URL, api_key=PROJECTDAVID_API_KEY)
         self.assistant_id: Optional[str] = None
         self.user_id = USER_ID
         self.provider_api_key = get_api_key_for_provider(self.provider)

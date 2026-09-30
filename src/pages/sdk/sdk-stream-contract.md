@@ -125,6 +125,52 @@ A lifecycle or tool progress event. Used to drive status indicators in the UI.
 
 ---
 
+### `web_status`
+
+A first-class lifecycle event emitted by web research tools.
+
+The SDK deserializes this event as `WebStatusEvent`. It is emitted for web tools
+including:
+
+- `perform_web_search`
+- `read_web_page`
+- `search_web_page`
+- `scroll_web_page`
+
+```json
+{
+  "type": "web_status",
+  "run_id": "abc123",
+  "status": "running",
+  "tool": "read_web_page",
+  "message": "Reading: https://example.com/..."
+}
+```
+
+| Field     | Type   | Required | Description                                          |
+|-----------|--------|----------|------------------------------------------------------|
+| `status`  | string | yes      | Web tool lifecycle state.                            |
+| `tool`    | string | no       | Web tool responsible for the event.                  |
+| `message` | string | no       | Human-readable description of the current operation. |
+
+Observed lifecycle values include:
+
+| Value     | Meaning                                                  |
+|-----------|----------------------------------------------------------|
+| `running` | Web operation is in progress.                            |
+| `success` | Operation completed successfully.                        |
+| `warning` | Recoverable web/tool condition occurred.                 |
+| `error`   | Web operation encountered an error.                      |
+
+A `warning` or individual web-tool `error` does not by itself necessarily mean
+the entire inference or delegated research task has failed. Research workers may
+recover by using another query, source, or tool path.
+
+Consumers should route `web_status` directly to the web-search status UI. It
+must not be rendered as assistant chat content.
+
+---
+
 ### `activity`
 
 A higher-level orchestration event describing agent or tool activity. Used to
@@ -200,6 +246,334 @@ as a secondary detection signal:
 
 ---
 
+## Delegated Worker Event Relay
+
+Deep Research workers execute as ephemeral assistants inside the Core runtime.
+
+Each delegated worker has its own thread, run, and Project David SDK inference
+stream. The external caller's SDK is therefore **not directly connected to the
+worker's stream**.
+
+The delegation layer acts as an event relay between the worker's internal stream
+and the parent inference stream:
+
+```text
+External SDK
+    │
+    ▼
+Parent / Supervisor inference stream
+    │
+    ▼
+DelegationMixin
+    │
+    ├── creates ephemeral worker
+    ├── creates ephemeral thread/run
+    ├── creates internal Project David SDK client
+    │
+    ▼
+Worker inference stream
+    │
+    ├── ScratchpadEvent
+    ├── WebStatusEvent
+    ├── ContentEvent
+    ├── ReasoningEvent
+    └── internal tool/lifecycle events
+    │
+    ▼
+DelegationMixin relay
+    │
+    ▼
+Parent stream
+    │
+    ▼
+External SDK
+```
+
+This relay allows consumers of the **single parent stream** to observe relevant
+worker activity without connecting directly to ephemeral worker runs.
+
+### Relayed Event Classes
+
+The delegation layer currently exposes worker activity according to the following
+contract:
+
+| Worker event/activity | Parent stream representation | Behaviour |
+|-----------------------|------------------------------|-----------|
+| `ScratchpadEvent` | `scratchpad_status` | Explicitly relayed |
+| `WebStatusEvent` | `web_status` | Explicitly relayed |
+| Worker content | `content` | Repackaged as delegation content |
+| Worker reasoning | `reasoning` | Repackaged as delegation reasoning |
+| Delegation lifecycle | `research_status` | Synthesized by `DelegationMixin` |
+| Worker raw tool-call payloads | not exposed directly | Consumed internally |
+| Generic worker lifecycle/status events | not exposed directly unless explicitly relayed | Consumed internally |
+
+### Parent Run Identity
+
+Relayed worker events are rebound to the **parent run ID**.
+
+For example, a worker may internally emit:
+
+```json
+{
+  "type": "web_status",
+  "run_id": "worker_run_xyz",
+  "status": "running",
+  "tool": "read_web_page",
+  "message": "Reading: https://docs.python.org/..."
+}
+```
+
+The parent stream receives:
+
+```json
+{
+  "type": "web_status",
+  "run_id": "parent_run_abc",
+  "status": "running",
+  "tool": "read_web_page",
+  "message": "Reading: https://docs.python.org/..."
+}
+```
+
+Consumers therefore do not need to subscribe to or correlate ephemeral worker
+run IDs in order to display worker activity.
+
+The parent `run_id` remains the stable stream identity.
+
+### Scratchpad Relay
+
+Worker `ScratchpadEvent` objects are intercepted by `DelegationMixin` and
+re-emitted as `scratchpad_status`.
+
+The relay preserves the useful worker-specific fields:
+
+```json
+{
+  "type": "scratchpad_status",
+  "run_id": "parent_run_abc",
+  "operation": "append",
+  "state": "success",
+  "tool": "append_scratchpad",
+  "activity": "📝 Appending to scratchpad (asst_worker123)...",
+  "entry": "✅ [VERIFIED] ...",
+  "assistant_id": "asst_worker123"
+}
+```
+
+This allows the consumer to observe scratchpad activity performed by delegated
+workers while still treating the event as part of the parent run.
+
+The `assistant_id` continues to identify the actual assistant that performed the
+scratchpad operation.
+
+### Web Status Relay
+
+Worker `WebStatusEvent` objects are intercepted by `DelegationMixin` and
+re-emitted as normal `web_status` events.
+
+Example:
+
+```json
+{
+  "type": "web_status",
+  "run_id": "parent_run_abc",
+  "status": "running",
+  "tool": "perform_web_search",
+  "message": "Querying SearxNG: 'python official documentation'..."
+}
+```
+
+No special consumer-side worker event class is required.
+
+The external SDK receives the relayed event through the ordinary stream parser
+and deserializes it as the existing `WebStatusEvent`.
+
+The same mechanism applies to:
+
+```text
+perform_web_search
+read_web_page
+search_web_page
+scroll_web_page
+```
+
+including their `running`, `success`, `warning`, and `error` lifecycle states.
+
+### Worker Content and Reasoning
+
+Worker content and reasoning are not forwarded as raw child event objects.
+
+`DelegationMixin` extracts the worker stream's content/reasoning and emits parent
+delegation chunks which are subsequently surfaced to consumers as ordinary
+`ContentEvent` and `ReasoningEvent` objects.
+
+Conceptually:
+
+```text
+Worker ContentEvent
+        │
+        ▼
+DelegationMixin
+        │
+        ▼
+delegation content chunk
+        │
+        ▼
+Parent ContentEvent
+```
+
+and:
+
+```text
+Worker ReasoningEvent
+        │
+        ▼
+DelegationMixin
+        │
+        ▼
+delegation reasoning chunk
+        │
+        ▼
+Parent ReasoningEvent
+```
+
+Consumers therefore do not need separate handling for worker text.
+
+### Research Status Is Synthesized
+
+`ResearchStatusEvent` entries surrounding delegation are generated by
+`DelegationMixin` itself rather than copied from the child worker stream.
+
+Typical lifecycle:
+
+```text
+Initializing delegation worker...
+Worker active. Streaming...
+Worker stream finished. Finalizing payload...
+Delegation complete.
+```
+
+These events describe the **delegation operation as a whole** and use:
+
+```json
+{
+  "type": "research_status",
+  "run_id": "parent_run_abc",
+  "tool": "delegate_research_task",
+  "state": "in_progress",
+  "activity": "Worker active. Streaming..."
+}
+```
+
+The final state is normally:
+
+```json
+{
+  "type": "research_status",
+  "run_id": "parent_run_abc",
+  "tool": "delegate_research_task",
+  "state": "completed",
+  "activity": "Delegation complete."
+}
+```
+
+or an error equivalent when delegation fails.
+
+### Raw Tool Calls Remain Internal
+
+The relay intentionally does **not** expose the delegated worker's raw
+`ToolCallRequestEvent` / tool-call payloads to the external caller.
+
+Research tools are Core-owned. The worker executes those tools inside its own
+runtime and the delegation layer consumes the corresponding tool-call mechanics.
+
+This preserves the boundary:
+
+```text
+External caller
+    │
+    └── observes lifecycle/status/output
+
+Core worker
+    │
+    └── owns and executes research tools
+```
+
+The external client should therefore observe:
+
+```text
+ResearchStatusEvent
+ScratchpadEvent
+WebStatusEvent
+ContentEvent
+ReasoningEvent
+```
+
+but should **not** be required to execute delegated worker web or scratchpad
+tools itself.
+
+### Relay Ordering
+
+Events are relayed synchronously in the order they are observed from the worker
+stream.
+
+A typical delegated research sequence may therefore appear as:
+
+```text
+ResearchStatusEvent   Initializing delegation worker...
+ResearchStatusEvent   Worker active. Streaming...
+
+ScratchpadEvent       read / in_progress
+ScratchpadEvent       read / success
+ScratchpadEvent       read / completed
+
+WebStatusEvent        perform_web_search / running
+WebStatusEvent        perform_web_search / warning
+
+ScratchpadEvent       append / in_progress
+ScratchpadEvent       append / success
+ScratchpadEvent       append / completed
+
+WebStatusEvent        read_web_page / running
+WebStatusEvent        read_web_page / success
+
+WebStatusEvent        search_web_page / running
+WebStatusEvent        search_web_page / success
+
+ContentEvent          Worker completion text...
+
+ResearchStatusEvent   Worker stream finished. Finalizing payload...
+ResearchStatusEvent   Delegation complete.
+```
+
+Consumers may use this ordering to construct a live Deep Research activity view.
+
+They must not assume that every web tool ends in `success`: recoverable
+`warning` or `error` states may be followed by another research attempt.
+
+### Relay Consumer Rule
+
+Consumers should treat relayed events identically to equivalent events produced
+directly by the parent assistant.
+
+Do **not** introduce a separate "worker web status" or "worker scratchpad status"
+wire type.
+
+The relay deliberately preserves the existing public event contract:
+
+```text
+scratchpad_status
+web_status
+content
+reasoning
+research_status
+```
+
+The fact that an event originated inside a delegated worker is an orchestration
+detail, not a separate transport protocol.
+
+---
+
 ### `tool_call_start` / `tool_call_manifest`
 
 Emitted when a tool invocation begins. Consumers use this to show a tool-in-progress
@@ -225,6 +599,11 @@ Routing rules for consumers:
 | Scratchpad tools | `read_scratchpad`, `update_scratchpad`, `append_scratchpad`                       | Swallow silently   |
 | Delegation tools | `delegate_research_task`, `delegate_engineer_task`                                | DeepResearchStatus |
 | Everything else  | Custom consumer tools                                                             | DeepResearchStatus |
+
+> **Delegated worker note:** Raw worker tool-call manifests are consumed internally
+> by Core and are not normally relayed to the parent client. Worker web activity is
+> exposed through `web_status`; worker scratchpad activity is exposed through
+> `scratchpad_status`.
 
 ---
 
@@ -311,7 +690,7 @@ Unlike earlier versions of this contract, the bleed strings now include the
 
 Filter any `content` event whose text starts with one of these prefixes:
 
-```
+```text
 📖 Reading scratchpad (
 📖 Scratchpad read by
 ✏️ Updating scratchpad (
@@ -332,17 +711,36 @@ Validation error:
 
 ## Consumer Routing Order
 
-When a `type:'content'` event arrives, consumers must evaluate in this exact order:
+Consumers should route first-class typed events before applying any legacy
+content-string heuristics.
 
-1. **Scratchpad entry start?** — does the text begin with `📌 ✅ 🔄 ❓ ⚠️ ☠️`?
+Recommended order:
+
+1. **`type:'scratchpad_status'`?**
+   → route directly to the scratchpad component, `return`
+2. **`type:'web_status'`?**
+   → route directly to the web-search status component, `return`
+3. **`type:'research_status'` / orchestration status?**
+   → route to the Deep Research status component, `return`
+4. **Other non-content typed event?**
+   → route according to its event contract
+5. **`type:'content'` scratchpad entry start?**
+   → does text begin with `📌 ✅ 🔄 ❓ ⚠️ ☠️`?
    → accumulate into scratchpad buffer, `return`
-2. **Mid scratchpad block?** — is an accumulation currently open?
+6. **Mid scratchpad block?**
+   → is an accumulation currently open?
    → append to buffer, `return`
-3. **Legacy WebStatusEvent string?** — does the text start with `WebStatusEvent(`?
+7. **Legacy `WebStatusEvent(...)` string?**
    → parse and route to status component, `return`
-4. **Bleed string?** — does the text match any prefix in the filter list above?
+8. **Bleed string?**
+   → does the text match any prefix in the filter list above?
    → swallow silently, `return`
-5. **Default** → render as chat content
+9. **Default**
+   → render as chat content
+
+> **Important:** `web_status` is now a first-class stream event, including when it
+> originated from a delegated research worker. Parsing `WebStatusEvent(...)` out of
+> content is retained only as a backwards-compatibility path for legacy emitters.
 
 ---
 

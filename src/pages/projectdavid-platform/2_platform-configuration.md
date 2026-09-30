@@ -92,7 +92,7 @@ Leave blank if you are not using these providers.
 | `HYPERBOLIC_API_KEY` | Hyperbolic | `pdavid configure --set HYPERBOLIC_API_KEY=...` |
 | `DEEP_SEEK_API_KEY` | DeepSeek | `pdavid configure --set DEEP_SEEK_API_KEY=...` |
 | `ADMIN_API_KEY` | Set after bootstrapping — see Quick Start | `pdavid bootstrap-admin` |
-| `ENTITIES_API_KEY` | SDK user key | Issued via SDK after bootstrapping |
+| `PROJECTDAVID_API_KEY` | SDK user key | Issued via SDK after bootstrapping |
 | `ENTITIES_USER_ID` | SDK user ID | Issued via SDK after bootstrapping |
 
 ---

@@ -18,7 +18,7 @@ This will:
 - Create an admin user (`ADMIN_EMAIL` from `.env`)
 - Generate a **plain API key**
 - Save the key to:
-  - `.env` under `ENTITIES_API_KEY`
+  - `.env` under `PROJECTDAVID_API_KEY`
   - `admin_credentials.txt` (DO NOT COMMIT)
 
 **Sample Output:**

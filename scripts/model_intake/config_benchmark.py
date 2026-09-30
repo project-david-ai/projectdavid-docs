@@ -8,7 +8,7 @@ dotenv.load_dotenv()
 
 config = {
     "base_url": "http://localhost:9000",
-    "entities_api_key": os.getenv("ENTITIES_API_KEY"),
+    "entities_api_key": os.getenv("PROJECTDAVID_API_KEY"),
     "together_api_key": os.getenv("TOGETHER_API_KEY"),
     "hyperbolic_api_key": os.getenv("HYPERBOLIC_API_KEY"),
     "entities_user_id": os.getenv("ENTITIES_USER_ID"),

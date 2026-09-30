@@ -17,7 +17,7 @@ The Project David Platform supports private local inference through [Ollama](htt
 
 Ensure the following environment variables are set:
 
-- `ENTITIES_API_KEY`: Your Entities API key.
+- `PROJECTDAVID_API_KEY`: Your Entities API key.
 - `BASE_URL`: Base URL of your Entities API instance (default: `http://localhost:9000`).
 
 Ollama itself must be running and reachable from your platform instance. If you haven't set up Ollama yet, the [Ollama quickstart](https://github.com/ollama/ollama/blob/main/README.md#quickstart) is the fastest way to get going.
@@ -43,7 +43,7 @@ load_dotenv()
 
 client = Entity(
     base_url=os.getenv("BASE_URL", "http://localhost:9000"),
-    api_key=os.getenv("ENTITIES_API_KEY")
+    api_key=os.getenv("PROJECTDAVID_API_KEY")
 )
 
 # --- your thread / assistant / message / run setup here ---

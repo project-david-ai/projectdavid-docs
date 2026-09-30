@@ -85,7 +85,7 @@ Whether you’re working on the backend or frontend:
 
 - Ensure your application’s environment (or settings) includes:
   ```dotenv
-  ENTITIES_API_KEY=<from step 2>
+  PROJECTDAVID_API_KEY=<from step 2>
   ENTITIES_USER_ID=<from step 2>
   ```
 
@@ -116,7 +116,7 @@ You’re now ready to develop against the open-source API stack! 🎉
     
    client = Entity(
     base_url=os.getenv("BASE_URL", "http://localhost:9000"),
-    api_key=os.getenv("ENTITIES_API_KEY")
+    api_key=os.getenv("PROJECTDAVID_API_KEY")
    )
    
    ```

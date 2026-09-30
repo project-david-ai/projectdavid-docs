@@ -17,7 +17,7 @@ Each PTY session is mediated by a room, which maps directly to a Thread ID. The 
 # 0.  Create thread
 # ------------------------------------------------------------------
 
-client = Entity(api_key=os.getenv("ENTITIES_API_KEY"))
+client = Entity(api_key=os.getenv("PROJECTDAVID_API_KEY"))
 thread = client.threads.create_thread()
 print(thread.id)
 

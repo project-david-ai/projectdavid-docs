@@ -1,20 +1,25 @@
-// src/App.jsx
-import React, { useEffect } from 'react'; // Added useEffect
+import React, { useEffect } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
-  useLocation, // Added useLocation
+  Link,
+  useLocation,
 } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 
 import 'katex/dist/katex.min.css';
+
 import DocsLayout from './docsLayout';
 import DocPage from './pages/common/DocPage.jsx';
 import DocsHub from './pages/common/DocsHub.jsx';
-import { trackPageView } from './lib/tracker'; // Import tracker
+import OpenApiReferencePage from './pages/common/OpenApiReferencePage.jsx';
 
-// This internal component watches for route changes
+import { trackPageView } from './lib/tracker';
+
+import './ApiReferenceLayout.css';
+
 function AnalyticsWatcher() {
   const location = useLocation();
 
@@ -22,15 +27,61 @@ function AnalyticsWatcher() {
     trackPageView(location.pathname);
   }, [location]);
 
-  return null; // Invisible component
+  return null;
+}
+
+function ApiReferenceLayout() {
+  return (
+    <div className="api-workspace">
+      <header className="api-workspace__header">
+        <div className="api-workspace__identity">
+
+          <Link to="/docs" className="api-workspace__brand">
+  <img
+    src="/projectdavid-emblem.svg"
+    alt=""
+    className="api-workspace__emblem"
+    width={24}
+    height={24}
+  />
+  <span>Project David</span>
+</Link>
+          <span className="api-workspace__separator">/</span>
+
+          <span className="api-workspace__label">
+            API reference
+          </span>
+        </div>
+
+        <Link to="/docs" className="api-workspace__back">
+          <ArrowLeft size={14} />
+          <span>Documentation</span>
+        </Link>
+      </header>
+
+      <main className="api-workspace__content">
+        <OpenApiReferencePage />
+      </main>
+    </div>
+  );
 }
 
 export default function App() {
   return (
     <Router>
-      <AnalyticsWatcher /> {/* <--- Fires on every navigation */}
+      <AnalyticsWatcher />
+
       <Routes>
-        <Route path="/" element={<Navigate to="/docs" replace />} />
+        <Route
+          path="/"
+          element={<Navigate to="/docs" replace />}
+        />
+
+        <Route
+          path="/docs/api-reference"
+          element={<ApiReferenceLayout />}
+        />
+
         <Route path="/docs" element={<DocsLayout />}>
           <Route index element={<DocsHub />} />
           <Route path=":slug" element={<DocPage />} />

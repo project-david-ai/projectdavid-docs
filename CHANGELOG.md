@@ -1,3 +1,10 @@
+# [1.26.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.25.0...v1.26.0) (2026-11-27)
+
+
+### Features
+
+* **docs:** overhaul developer documentation and agent-readable delivery ([833df0d](https://github.com/project-david-ai/projectdavid-docs/commit/833df0dcd17b7d6c6b753dca492da0e2fc16cf0a))
+
 # [1.25.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.24.0...v1.25.0) (2026-11-27)
 
 

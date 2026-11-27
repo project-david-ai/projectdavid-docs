@@ -1,0 +1,140 @@
+.api-workspace {
+  width: 100%;
+  min-height: 100vh;
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* Header */
+
+.api-workspace__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  min-height: 60px;
+  padding: 0 24px;
+
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.api-workspace__identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.api-workspace__brand {
+  font-family: "Manrope", sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+
+.api-workspace__emblem {
+  display: block;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+
+.api-workspace__separator {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.api-workspace__label {
+  font-size: 13px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Return navigation */
+
+.api-workspace__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+
+  transition: background 150ms ease;
+}
+
+.api-workspace__back:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.api-workspace__brand:focus-visible,
+.api-workspace__back:focus-visible {
+  outline: 2px solid var(--text-muted);
+  outline-offset: 3px;
+}
+
+/* Reference content */
+
+.api-workspace__content {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.api-workspace__content .scalar-reference {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Responsive */
+
+@media (max-width: 600px) {
+  .api-workspace__header {
+    min-height: 56px;
+    padding: 0 16px;
+    gap: 8px;
+  }
+
+  .api-workspace__identity {
+    gap: 8px;
+  }
+
+  .api-workspace__separator,
+  .api-workspace__label {
+    display: none;
+  }
+
+  .api-workspace__back {
+    padding: 8px;
+  }
+}
+
+
+
+
+@media (prefers-reduced-motion: reduce) {
+  .api-workspace__back {
+    transition: none;
+  }
+}

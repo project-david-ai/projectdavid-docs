@@ -16,7 +16,7 @@
     "@fortawesome/react-fontawesome": "^0.2.2",
     "@react-three/drei": "^10.3.0",
     "@react-three/fiber": "^9.1.2",
-    "@stoplight/elements": "^9.0.15",
+    "@scalar/api-reference-react": "0.9.98",
     "flubber": "^0.4.2",
     "framer-motion": "^12.18.1",
     "fuse.js": "^7.1.0",

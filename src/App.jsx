@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
@@ -14,11 +14,14 @@ import 'katex/dist/katex.min.css';
 import DocsLayout from './docsLayout';
 import DocPage from './pages/common/DocPage.jsx';
 import DocsHub from './pages/common/DocsHub.jsx';
-import OpenApiReferencePage from './pages/common/OpenApiReferencePage.jsx';
 
 import { trackPageView } from './lib/tracker';
 
 import './ApiReferenceLayout.css';
+
+const OpenApiReferencePage = lazy(
+  () => import('./pages/common/OpenApiReferencePage.jsx')
+);
 
 function AnalyticsWatcher() {
   const location = useLocation();
@@ -35,17 +38,18 @@ function ApiReferenceLayout() {
     <div className="api-workspace">
       <header className="api-workspace__header">
         <div className="api-workspace__identity">
-
           <Link to="/docs" className="api-workspace__brand">
-  <img
-    src="/projectdavid-emblem.svg"
-    alt=""
-    className="api-workspace__emblem"
-    width={24}
-    height={24}
-  />
-  <span>Project David</span>
-</Link>
+            <img
+              src="/projectdavid-emblem.svg"
+              alt=""
+              className="api-workspace__emblem"
+              width={24}
+              height={24}
+            />
+
+            <span>Project David</span>
+          </Link>
+
           <span className="api-workspace__separator">/</span>
 
           <span className="api-workspace__label">
@@ -60,7 +64,9 @@ function ApiReferenceLayout() {
       </header>
 
       <main className="api-workspace__content">
-        <OpenApiReferencePage />
+        <Suspense fallback={null}>
+          <OpenApiReferencePage />
+        </Suspense>
       </main>
     </div>
   );

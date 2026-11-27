@@ -1,3 +1,16 @@
+# [1.25.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.24.0...v1.25.0) (2026-11-27)
+
+
+### Features
+
+* **docs:** integrate generated Python SDK reference ([27544c2](https://github.com/project-david-ai/projectdavid-docs/commit/27544c2612f1012bc5af81a4d6a05f863fb7e37c))
+* **docs:** redesign documentation and integrate Scalar API reference ([6eb2950](https://github.com/project-david-ai/projectdavid-docs/commit/6eb2950c9e435645fbc322866e11684082341812))
+
+
+### Performance Improvements
+
+* **docs:** lazy-load Scalar API reference ([f499e5d](https://github.com/project-david-ai/projectdavid-docs/commit/f499e5dff5b7b877453e632e36e70ba26eb7e6f5))
+
 # [1.24.0](https://github.com/project-david-ai/projectdavid-docs/compare/v1.23.1...v1.24.0) (2026-04-28)
 
 

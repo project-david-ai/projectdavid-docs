@@ -136,6 +136,10 @@ for the complete management interface.
 
 Bring your own inference provider credentials (BYOK).
 
+Register credentials through **API keys → Provider keys** in the
+[Portal](https://platform.projectdavid.co.uk), or programmatically
+using the SDK or HTTP API.
+
 Register a provider key once and reference its identifier
 in subsequent inference requests.
 

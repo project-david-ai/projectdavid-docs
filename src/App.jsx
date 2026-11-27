@@ -15,6 +15,8 @@ import DocsLayout from './docsLayout';
 import DocPage from './pages/common/DocPage.jsx';
 import DocsHub from './pages/common/DocsHub.jsx';
 
+import { pages, resolveSlug } from './lib/docs';
+
 import { trackPageView } from './lib/tracker';
 
 import './ApiReferenceLayout.css';
@@ -29,6 +31,17 @@ function AnalyticsWatcher() {
   useEffect(() => {
     trackPageView(location.pathname);
   }, [location]);
+
+  useEffect(() => {
+    const slug = resolveSlug(location.pathname.split('/')[2]);
+    if (!pages[slug]) return;
+    const alternate = document.createElement('link');
+    alternate.rel = 'alternate';
+    alternate.type = 'text/markdown';
+    alternate.href = `/markdown/${slug}.md`;
+    document.head.appendChild(alternate);
+    return () => alternate.remove();
+  }, [location.pathname]);
 
   return null;
 }
@@ -90,6 +103,12 @@ export default function App() {
 
         <Route path="/docs" element={<DocsLayout />}>
           <Route index element={<DocsHub />} />
+
+          <Route
+            path="sdk-lifecycle"
+            element={<Navigate to="/docs/sdk-quick-start" replace />}
+          />
+
           <Route path=":slug" element={<DocPage />} />
         </Route>
       </Routes>

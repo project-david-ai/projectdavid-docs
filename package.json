@@ -5,9 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run validate:docs && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "validate:docs": "node scripts/validate-docs.mjs",
+    "test:docs": "node --test scripts/docs.test.mjs scripts/raw-docs.test.mjs",
+    "check:examples": "python -X utf8 scripts/check_examples.py"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.6",

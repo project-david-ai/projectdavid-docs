@@ -7,187 +7,78 @@ nav_order: 5
 
 # Security
 
-Project David Platform is designed for deployment in security-sensitive environments — financial services, government, and regulated industries. This page documents the security architecture, supported versions, and the vulnerability disclosure process.
+Self-hosting Project David gives operators control over the runtime, its storage and network exposure. Operators remain responsible for securing the deployment, reviewing tool permissions and assessing the data sent to external services.
 
----
+## Supported versions
 
-## Supported Versions
+Security updates are provided for the latest stable release. Keep the Platform package and runtime images on compatible, maintained releases. See [Upgrading Platform](/docs/platform-upgrading).
 
-Security updates are provided for the latest stable release only. Ensure you are running the latest version before reporting a vulnerability.
+Report vulnerabilities even if you first encounter them on an older release. Include the affected versions in your report.
 
-| Version | Supported |
+## Credentials
+
+Platform generates service credentials when initializing a runtime directory, including database passwords, signing secrets, sandbox authentication material and credential-management keys. The startup validator rejects a defined set of empty or known insecure values; it is not a comprehensive secret-strength or configuration audit.
+
+Protect the runtime `.env`, its backups and any credential handoff files. Restrict access to the deployment account and authorized administrators. Do not commit these files, include them in container images, or disclose them in logs or support reports. Platform creates a `.dockerignore` excluding `.env` files if one does not already exist; verify existing ignore rules and source-control exclusions separately.
+
+If `.env` is missing but the runtime instance identity remains, Platform refuses to generate a replacement. Recover the original configuration and credentials. Do not reset persistent storage to recover a key.
+
+For generated settings and rotation limitations, see [Configuration Reference](/docs/platform-configuration).
+
+## API access
+
+The Core authentication dependency validates application API keys supplied in the `X-API-Key` header against active credentials and checks their expiry when configured.
+
+| Credential | Purpose |
 |---|---|
-| >= 1.91.0 | ✅ |
-| < 1.91.0 | ❌ |
+| Administrator API key | Administrative operations and provisioning |
+| Application API key | API access within the authenticated user's authorized scope |
+| Registered provider key | Authentication to an inference provider on behalf of its owner |
+| MCP credential | Authentication to a registered remote MCP server |
 
----
+`pdavid bootstrap-admin` obtains the administrator credential from Core and persists it in the runtime `.env`. Normal CLI output reports the key prefix rather than the plaintext. JSON output without a credential handoff file may include the full key; treat it as sensitive.
 
-## Security Architecture
+Use dedicated application credentials for normal workloads. Protected service-key status does not by itself grant cross-user privileges. Manage application, provider and MCP credentials through their respective API interfaces, not by replacing arbitrary values in `.env`.
 
-### Secret Generation
+## Files and downloads
 
-All secrets are cryptographically generated on first run by the platform orchestrator. No default, weak, or placeholder values are ever written to `.env`. The following are always generated fresh:
+Signed download URLs contain a file identifier, expiry and signature. Core verifies the signature and expiry before serving the file. Issuing a new signed URL requires an authenticated caller authorized to access the file.
 
-- `MYSQL_ROOT_PASSWORD` — MySQL root password
-- `MYSQL_PASSWORD` — MySQL application user password
-- `SECRET_KEY` — Application signing key
-- `DEFAULT_SECRET_KEY` — Default fallback signing key
-- `SIGNED_URL_SECRET` — Signed URL generation secret
-- `SANDBOX_AUTH_SECRET` — Sandbox authentication secret
-- `SMBCLIENT_PASSWORD` — Samba share password
-- `SEARXNG_SECRET_KEY` — SearXNG instance secret
+A signed URL is a bearer credential: the download request does not require an API key. Anyone possessing a valid link may be able to retrieve its contents. Use short expiry periods, HTTPS and controlled distribution; avoid logging complete URLs.
 
-The platform validates all secrets on every startup and will refuse to start if any are blank or set to known insecure values.
+Soft deletion must not be treated as immediate access revocation. Existing signed links may remain usable, and the authenticated Base64 retrieval interface is a separate access path. See [Files](/docs/sdk-files) for the current file lifecycle contract.
 
-`.env` is listed in `.dockerignore` — secrets are never copied into Docker images.
+## Execution and network isolation
 
----
+The Platform configuration generator defaults `DISABLE_FIREJAIL` to `true`. Do not assume Firejail is active or that all tool execution is isolated from the host. Before allowing untrusted code or multi-user workloads, verify the effective sandbox configuration, container privileges, mounted paths, authentication and network restrictions. Setting a configuration variable alone is not evidence of an effective isolation boundary.
 
-### Admin Key Bootstrap
+The following are deployment requirements, not guarantees of the packaged defaults:
 
-`ADMIN_API_KEY` is not generated at init. It is written to `.env` only when you explicitly run:
+- Use HTTPS for remote API access, signed downloads and externally accessible tool connections.
+- Restrict inbound traffic to required interfaces. Inspect the effective Compose configuration and actual Docker port bindings; keep databases, caches, storage, sandbox and observability endpoints off public networks unless explicitly required and secured.
+- Restrict tool permissions and outbound connectivity according to the workload. Review local function handlers and remote MCP capabilities before allowing an assistant to use them.
+- Treat traces, logs and execution records as potentially sensitive data. Restrict access and verify retention, redaction and export settings.
 
-```bash
-pdavid bootstrap-admin
-```
+External inference providers, web search services and remote MCP servers may receive application data. Review their processing and retention policies before enabling them for sensitive workloads. Self-hosting does not by itself establish air-gapped operation or regulatory compliance.
 
-This is intentional — no admin key exists until an operator is present to record it. The key is shown exactly once and cannot be recovered from the platform.
+## Maintenance and recovery
 
-> Store the admin key in a secrets manager immediately after bootstrap. Do not use it for general API calls — issue dedicated user keys for all application access.
+Keep a restorable backup of persistent data, configuration and associated key material. Review image provenance and release compatibility before upgrades; record the actual deployed image IDs or digests, not just the package version or a mutable image tag.
 
----
+Do not use `--clear-volumes` or `--nuke` for ordinary maintenance, upgrades or credential recovery. The current `--nuke` implementation runs Compose teardown with volume removal followed by `docker system prune -a --volumes --force`. This is host-wide Docker cleanup and can affect unrelated workloads and unused storage. Its typed confirmation is not a security boundary.
 
-### Sandbox Isolation — FireJail PTY
+## Reporting a vulnerability
 
-All code execution runs inside a FireJail PTY sandbox. FireJail uses Linux namespaces and seccomp-bpf syscall filtering to isolate execution from the host.
+Report security issues privately to [engineering@projectdavid.co.uk](mailto:engineering@projectdavid.co.uk). Do not open a public issue containing exploit details or credentials.
 
-- Process isolation via Linux namespaces
-- Filesystem isolation — sandboxed processes cannot access host paths
-- Syscall filtering via seccomp-bpf
+Include the affected Platform package version, runtime image identities where available, a description of the impact, and safe reproduction steps. Remove customer data, credentials and signed URLs from the report.
 
-> `DISABLE_FIREJAIL=true` is the default for ease of initial setup. **Set this to `false` for any production or multi-user deployment:**
+The project aims to acknowledge reports within 48 hours and coordinate remediation and disclosure with the reporter.
 
-```bash
-pdavid configure --set DISABLE_FIREJAIL=false
-pdavid --mode up --force-recreate
-```
+## Reference
 
----
-
-### Signed URL File Access
-
-File downloads are served via signed, time-limited tokens. Direct filesystem access to uploaded files is not exposed through the API.
-
-- `SIGNED_URL_SECRET` is auto-generated on first run
-- Tokens are scoped to a specific file and expire after a configurable TTL
-- Unsigned requests to file paths are rejected
-
----
-
-### Sandbox Authentication
-
-The sandbox service authenticates all requests from the API using a shared secret:
-
-- `SANDBOX_AUTH_SECRET` is auto-generated on first run
-- The sandbox rejects any request that does not present a valid token
-- The secret is never exposed through the API surface
-
----
-
-### API Key Architecture
-
-| Key type | Prefix | Scope |
-|---|---|---|
-| Admin key | `ad_` | Full platform access — provisioning users, issuing keys |
-| User key | `ea_` | Standard API access — assistants, threads, runs, tools |
-| Tool identifiers | `tool_` | Internal tool routing — auto-generated, not user-facing |
-
----
-
-### Network Architecture
-
-All external traffic routes through the nginx reverse proxy on port 80. Internal services communicate over a private Docker bridge network and are not directly exposed:
-
-| Service | Internal port | External exposure |
-|---|---|---|
-| API | 9000 | Via nginx proxy only |
-| Sandbox | 8000 | Via nginx proxy only |
-| MySQL | 3306 | `127.0.0.1:3307` only |
-| Redis | 6379 | Internal only |
-| Qdrant | 6333/6334 | Internal only |
-| SearXNG | 8080 | Internal only |
-
----
-
-### Database Security
-
-- All MySQL credentials are cryptographically generated — no default passwords
-- The database container is not exposed on a public interface by default
-- All database access goes through the API container — no direct external connections
-
----
-
-### The Nuke Command
-
-`pdavid --nuke` destroys all stack data including volumes. It requires explicit typed confirmation before executing:
-
-```
-Type 'confirm nuke' to proceed:
-```
-
-This cannot be triggered accidentally via a flag or script without human interaction. It is provided for operators who need a clean slate and understand the consequences.
-
----
-
-### Observability
-
-Project David Platform ships with OpenTelemetry instrumentation. Traces are exported to a Jaeger instance running alongside the stack:
-
-- Jaeger UI: `http://localhost:16686`
-- All API requests are traced end-to-end
-- No trace data leaves the local network by default
-
----
-
-### Supply Chain Security
-
-Platform pulls pre-built Docker images from Docker Hub under the `thanosprime` namespace. All images are built by the Gold Standard CI pipeline from the projectdavid-core repository:
-
-- Every push to `main` triggers a fresh build and push
-- Images are tagged with semantic version, SHA, and `latest`
-- Hadolint lints all Dockerfiles on every CI run
-
-To verify which image version you are running:
-
-```bash
-docker images | grep thanosprime
-```
-
-To pin to a specific verified image version rather than `latest`, see [Pinning to a Specific Version](/docs/platform-upgrading#pinning-to-a-specific-version).
-
----
-
-## Reporting a Vulnerability
-
-**Please do not open a public GitHub issue for security vulnerabilities.**
-
-If you discover a security-related bug in Project David Platform, report it privately. Your report will be handled with high priority.
-
-### Disclosure Process
-
-1. **Email:** [engineering@projectdavid.co.uk](mailto:engineering@projectdavid.co.uk)
-2. **Details:** Include a summary of the issue, a proof-of-concept if possible, and the version of the platform you are running (`pip show projectdavid-platform`)
-3. **Acknowledgment:** You will receive acknowledgment within 48 hours
-4. **Resolution:** We will coordinate a fix and release. Please do not disclose the issue publicly until a patched version has been released
-
-## Responsible Disclosure
-
-Project David Platform is maintained by a solo engineer. We appreciate your patience and your help in keeping the ecosystem safe for our users across 105 countries.
-
----
-
-## Related
-
-- [Platform Overview](/docs/platform-overview) — quick start and stack modes
-- [Configuration Reference](/docs/platform-configuration) — secret management and environment variables
-- [Core Security](/docs/core-security) — security documentation for source deployments
+- [Self-hosted Setup](/docs/boot_strap_guide)
+- [Configuration Reference](/docs/platform-configuration)
+- [Authentication](/docs/api_keys)
+- [Upgrading Platform](/docs/platform-upgrading)
+- [Core Security](/docs/core-security)

@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { rawDocsPlugin } from './scripts/docs-source.mjs'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 
 // https://vite.dev/config/
@@ -7,6 +8,7 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills'
 export default defineConfig({
   plugins: [
     react(),
+    rawDocsPlugin(),
     nodePolyfills(),
   ],
   server: {

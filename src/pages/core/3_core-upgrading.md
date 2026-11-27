@@ -7,160 +7,82 @@ nav_order: 3
 
 # Upgrading Core
 
-Project David Core is designed to upgrade safely without data loss. Database migrations run automatically on every container start — you do not need to run them manually.
+This guide covers source-based Core deployments. For deployments installed through `projectdavid-platform`, follow [Upgrading Platform](/docs/platform-upgrading).
 
----
+## Before upgrading
 
-## How Migrations Work
-
-The API container entrypoint runs `alembic upgrade head` before starting the application server on every startup:
+Review the target revision, dependency changes, Compose configuration and migration history. Record the existing source revision:
 
 ```bash
-# init_and_run_api.sh (runs inside the container on every start)
-alembic upgrade head
+git status --short
+git rev-parse HEAD
 ```
 
-Alembic compares the current schema version against the latest migration in the `migrations/` directory and applies any pending changes. Your data is preserved — Alembic only adds or modifies schema, it does not drop tables or truncate data during a standard upgrade.
+Preserve local changes before switching revisions. For a running deployment, schedule maintenance, pause new submissions and allow active runs to finish.
 
-All persistent data lives in named Docker volumes:
+Create and verify consistent backups of:
 
-| Volume | Contents |
-|---|---|
-| `mysql_data` | All assistant, thread, message, run, file, and user data |
-| `qdrant_storage` | Vector store embeddings |
-| `redis_data` | Queue state |
-| `ollama_data` | Downloaded model weights |
+- Database records, vector storage and uploaded or generated files.
+- Runtime configuration, credentials, local overrides and deployment identity files, where present.
+- Any other persistent storage used by the deployment, including bind mounts outside the checkout.
 
-Named volumes survive container rebuilds and restarts. Your data is not lost when you upgrade.
+Record the current container image IDs and configuration needed to reproduce the deployment. Test the upgrade and recovery procedure against a non-production copy before applying it to persistent workloads.
 
----
+## Update the source deployment
 
-## Standard Upgrade — Cloned Deployment
-
-For a deployment running from the cloned repository:
-
-**1. Pull the latest changes.**
+Fetch the intended revision and review its changes before integrating them into the deployment checkout.
 
 ```bash
-git pull origin main
+git fetch origin
 ```
 
-**2. Rebuild and restart the stack.**
+Use the build and startup commands supported by the target revision of Core. If the checkout exposes the source CLI, inspect its available options:
 
 ```bash
-platform-api --mode up --build-before-up --force-recreate
+platform-api docker-manager --help
 ```
 
-Alembic runs automatically on API container startup and applies any new migrations. No further steps required.
+Do not substitute packaged Platform commands for source deployment commands. Preserve the deployment's existing project identity, configuration and storage mounts. Container recreation can interrupt active runs and discard container-local state.
 
----
+## Database migrations
 
-## Standard Upgrade — Platform Deployment
+Core uses Alembic migrations to manage database schema changes. Review the target revision's `migrations/versions/` directory and API startup script to determine how migrations are applied.
 
-For a deployment running via `projectdavid-platform` (pip install):
+Do not assume that all migrations are additive, automatic or reversible. A migration can modify or remove data, and a failed migration can leave partially applied changes. Validate the upgrade on a database copy before running it against the original.
 
-**1. Pull the latest images.**
+## Verify the deployment
+
+From the existing deployment's Compose context, using the same project and configuration selection as startup:
 
 ```bash
-pip install --upgrade projectdavid-platform
-pdavid --mode up --force-recreate
+docker compose ps
+docker compose logs --tail 100 api
 ```
 
-Or if pulling Docker images directly:
+Use the actual API service name if your Compose configuration differs.
+
+Check the API health endpoint at the configured base URL. For a local deployment using the default HTTP entry point:
 
 ```bash
-docker compose pull
-docker compose up -d --force-recreate
+curl -fsS http://localhost:80/v1/health
 ```
 
-Alembic runs automatically on API container startup. No further steps required.
+Inspect migration results and service logs. Verify access to existing resources using an application key and exercise the affected functionality, including representative inference and tool execution where relevant. A successful health check alone does not establish schema integrity or successful inference.
 
----
+Resume traffic only after verification passes.
 
-## Upgrade Options Reference
+## Failed upgrades and recovery
 
-| Option | Description | When to use |
-|---|---|---|
-| `--force-recreate` | Recreate all containers from latest images | Standard upgrade path |
-| `--build-before-up` | Rebuild images from source before starting | After pulling new source code |
-| `--no-cache` | Rebuild images without Docker layer cache | When dependency changes are not being picked up |
-| `--mode down` then `--mode up` | Full stop and restart | When containers are in a bad state |
+If startup or verification fails, keep traffic paused. Preserve logs and the failed deployment state while investigating. Inspect the migration history and database revision using the appropriate Alembic environment for that deployment.
 
----
+Do not blindly rerun a failed migration, stamp a revision or downgrade a database. Determine which changes were applied and use a tested recovery procedure. Restoring an earlier source revision or image alone does not restore a compatible database schema.
 
-## Checking Your Current Version
+A complete rollback may require the previous source revision, image versions, configuration, credentials and a consistent persistent-data backup. Account for any writes made after the backup before restoring it.
 
-```bash
-git describe --tags --abbrev=0
-```
+Never delete `.env`, Compose configuration or persistent volumes as part of routine upgrade or rollback. Preserve credential encryption and signing key material. Credential rotation is a separate operation; see [Core configuration](/docs/core-configuration).
 
-Or check the API health endpoint once the stack is running:
+## Reference
 
-```bash
-curl http://localhost:80/v1/health
-```
-
----
-
-## Handling a Failed Migration
-
-If a migration fails on startup, the API container will exit with an error. Check the logs:
-
-```bash
-docker logs fastapi_cosmic_catalyst
-```
-
-Common causes:
-
-| Cause | Resolution |
-|---|---|
-| `DATABASE_URL` not set or unreachable | Confirm the `db` container is healthy before the API starts — check `docker ps` |
-| Migration conflict | Run `alembic history` inside the API container to inspect the migration chain |
-| Corrupt migration state | Run `alembic current` to check the current revision |
-
-To run migrations manually inside the API container:
-
-```bash
-docker exec -it fastapi_cosmic_catalyst alembic upgrade head
-```
-
----
-
-## What Does Not Survive an Upgrade
-
-| What | Survives? | Notes |
-|---|---|---|
-| Database data | ✅ Yes | Stored in `mysql_data` named volume |
-| Vector embeddings | ✅ Yes | Stored in `qdrant_storage` named volume |
-| Uploaded files | ✅ Yes | Stored in `SHARED_PATH` volume |
-| `.env` file | ✅ Yes | Never touched after initial generation |
-| `docker-compose.yml` | ✅ Yes | Never regenerated if it already exists |
-| Container state | ❌ No | Containers are recreated on upgrade |
-| In-flight runs | ❌ No | Any runs in progress when containers stop will need to be resubmitted |
-
----
-
-## Rotating Secrets After an Upgrade
-
-If you need to rotate auto-generated secrets (e.g. after a security incident):
-
-```bash
-# Stop the stack
-platform-api --mode down
-
-# Delete the .env and docker-compose.yml to force regeneration
-rm .env docker-compose.yml
-
-# Restart — new secrets will be generated
-platform-api --mode up
-```
-
-> ⚠️ Rotating secrets invalidates all existing API keys. You will need to re-provision admin credentials and reissue all user keys after rotating.
-
----
-
-## Related
-
-- [Project David Core](/docs/core-overview) — quick start and CLI reference
-- [Configuration Reference](/docs/core-configuration) — environment variable reference
-- [Docker Commands](/docs/docker_commands) — full orchestration command reference
+- [Project David Core](/docs/core-overview)
+- [Core configuration](/docs/core-configuration)
+- [Upgrading Platform](/docs/platform-upgrading)

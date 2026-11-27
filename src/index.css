@@ -197,65 +197,6 @@ pre {
   overflow-wrap: anywhere;
 }
 
-.markdown-body.markdown-sdk-reference > pre {
-  max-width: 100%;
-  margin: 12px 0 16px;
-  white-space: normal;
-}
-
-.markdown-body.markdown-sdk-reference .code-panel {
-  max-width: 100%;
-  margin: 12px 0 16px;
-  border-radius: var(--radius-md);
-  box-shadow: none;
-  overflow: hidden;
-}
-
-.markdown-body.markdown-sdk-reference .code-header {
-  padding: 6px 12px;
-}
-
-.markdown-body.markdown-sdk-reference .code-body {
-  padding: 14px 16px;
-  white-space: pre;
-  overflow-x: auto;
-  overflow-wrap: normal;
-}
-
-.markdown-body.markdown-sdk-reference .code-body code {
-  font-size: 13px;
-  line-height: 1.65;
-  white-space: pre;
-  overflow-wrap: normal;
-}
-
-.markdown-body.markdown-sdk-reference h2#reference + ul {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 24px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.markdown-body.markdown-sdk-reference h2#reference + ul > li {
-  margin: 0;
-  padding: 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.markdown-body.markdown-sdk-reference h2#reference + ul a {
-  display: block;
-  padding: 10px 0;
-  color: var(--text);
-  font-weight: 550;
-}
-
-.markdown-body.markdown-sdk-reference h2#reference + ul a:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
 @media (max-width: 767px) {
   .markdown-body.markdown-sdk-reference {
     margin: 16px auto 40px;
@@ -266,7 +207,4 @@ pre {
     font-size: 28px;
   }
 
-  .markdown-body.markdown-sdk-reference h2#reference + ul {
-    grid-template-columns: 1fr;
   }
-}

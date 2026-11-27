@@ -1,88 +1,126 @@
-# Docker Commands Reference
-
-This document captures all supported Docker orchestration commands used in the `entities` system via the `platform-api` CLI.
-
+---
+title: Development commands
+category: api-infra
+slug: docker_commands
+nav_order: 2
 ---
 
-## General Startup
+# Development commands
 
+Use the Core CLI to build and run the source checkout.
+For the packaged distribution, see [Self-hosted setup](/docs/boot_strap_guide).
 
-**Install the local package.**
+Run these commands from the Core repository root, on the Docker
+host, with the Core CLI installed in your active Python environment.
+Docker and Docker Compose are required.
+
+## CLI
 
 ```bash
-pip install -e .
+platform-api docker-manager --help
 ```
 
+The implementation is in `src/api/entities_api/cli/docker_manager.py`.
+The command operates on `docker-compose.yml` and invokes the
+development Compose generator before dispatching lifecycle actions.
 
-### Default Startup (build & up)
-
-
-
+## Start and build
 
 ```bash
 platform-api docker-manager --mode both
 ```
 
-### Bring Up Without Rebuilding
+This builds services with build definitions and starts the base stack.
+
+| Operation | Command |
+|---|---|
+| Start | `platform-api docker-manager --mode up` |
+| Build | `platform-api docker-manager --mode build` |
+| Build and start | `platform-api docker-manager --mode both` |
+| Build API image | `platform-api docker-manager --mode build --services api` |
+| Rebuild without cache | `platform-api docker-manager --mode build --no-cache` |
+| Recreate containers | `platform-api docker-manager --mode up --force-recreate` |
+| Stop | `platform-api docker-manager --mode down_only` |
+
+Starting services can create containers and initialize persistent
+state. Review the target checkout and its configuration before
+running a lifecycle command.
+
+The CLI generates `.env` when missing and backfills missing
+environment entries from `.env.example` and its persistent-key
+generators. Existing configuration is not guaranteed to remain
+byte-for-byte unchanged.
+
+Never delete `.env` or persistent volumes to resolve a startup
+failure in an existing deployment.
+
+## Inspect and troubleshoot
+
+For inspection of an existing stack, use Docker Compose directly:
 
 ```bash
-platform-api docker-manager --mode up
+docker compose ps
+docker compose logs --tail 100 api
+docker compose logs --follow api
 ```
 
-### Run with Ollama (Optional Local LLMs)
+The equivalent CLI log operations are:
 
 ```bash
-platform-api docker-manager --mode up --with-ollama
+platform-api docker-manager --mode logs --tail 100
+platform-api docker-manager --mode logs --follow --services api
 ```
 
-With GPU passthrough:
+Prefer direct Compose inspection when you do not want the Core CLI
+to regenerate configuration or backfill environment variables.
+
+The API source is bind-mounted in the base Compose definition.
+For local source changes, verify whether the running process
+needs a restart before rebuilding an image. A bind mount alone
+does not guarantee that a process reloads changed Python code.
+
+## Configuration
+
+For an existing `.env`, the CLI accepts explicit configuration
+updates:
 
 ```bash
-platform-api docker-manager --mode up --with-ollama --ollama-gpu
+platform-api docker-manager configure --set LOG_LEVEL=DEBUG
 ```
 
----
+This updates the file; it does not coordinate service credentials
+or apply changes to running containers. Review the affected
+services before recreating them.
 
-## Docker Lifecycle Commands
+Do not use `configure` as a general secret-rotation mechanism.
+Avoid placing credentials in command history or logs.
 
-| Action                        | Command |
-|-------------------------------|---------|
-| **Bring up containers**       | `platform-api docker-manager --mode up` |
-| **Build Docker images**       | `platform-api docker-manager --mode build` |
-| **Build & bring up**          | `platform-api docker-manager --mode both` |
-| **No-cache build**            | `platform-api docker-manager --mode build --no-cache` |
-| **No-cache build & up**       | `platform-api docker-manager --mode both --no-cache` |
-| **Clear volumes & restart**   | `platform-api docker-manager --mode up --clear-volumes` |
-| **Stop containers**           | `platform-api docker-manager --down` |
-| **Stop & clear all data**     | `platform-api docker-manager --down --clear-volumes` |
-| **Debug cache/docker health** | `platform-api docker-manager --debug-cache` |
+## Administrator provisioning
 
----
+Once the API service is running, the Core CLI can invoke the
+administrator bootstrap script inside the API container.
 
-## Build Specific Services
+```bash
+platform-api docker-manager bootstrap-admin
+```
 
-| Service                 | Command |
-|-------------------------|---------|
-| **Main API**            | `platform-api docker-manager --mode build --services api` |
-| **Database (MySQL)**    | `platform-api docker-manager --mode build --services db` |
-| **Vector DB (Qdrant)**  | `platform-api docker-manager --mode build --services qdrant` |
-| **Sandbox**             | `platform-api docker-manager --mode build --services sandbox` |
-| **File Server (Samba)** | `platform-api docker-manager --mode build --services samba` |
+The CLI requires a database URL and a running API service.
+Handle bootstrap output as sensitive and do not assume that a
+previous plaintext credential can be recovered.
 
----
+## Destructive operations
 
-## Logging
+Volume removal deletes persistent state. The CLI's nuke operation
+also performs a Docker system-wide prune, which can affect
+unrelated projects on the same host.
 
-| Action                                              | Command |
-|-----------------------------------------------------|---------|
-| View all logs (last 100 lines)                      | `platform-api docker-manager --mode logs --tail 100` |
-| Follow logs for all services                        | `platform-api docker-manager --mode logs --follow` |
-| Follow logs for specific services with timestamps   | `platform-api docker-manager --mode logs --follow --timestamps --services api db` |
-| View logs without service name prefix               | `platform-api docker-manager --mode logs --tail 200 --no-log-prefix` |
-| Save logs to file (shell redirection)               | `platform-api docker-manager --mode logs --tail 1000 > output.log` |
-| Follow logs for a single service                    | `platform-api docker-manager --mode logs --follow --services otel-collector` |
-| Save all logs to file                               | `platform-api docker-manager --mode logs > docker_logs.log` |
-| Save last 1000 lines to file                        | `platform-api docker-manager --mode logs --tail 1000 > docker_logs.log` |
-| Save logs with timestamps to file                   | `platform-api docker-manager --mode logs --timestamps > docker_logs.log` |
-| Save logs for specific services to file             | `platform-api docker-manager --mode logs --services api otel-collector > docker_logs.log` |
-| Append to existing file                             | `platform-api docker-manager --mode logs --tail 500 >> docker_logs.log` |
+Neither operation is part of routine development, upgrade or
+credential recovery.
+
+## Reference
+
+- [Project David Core](/docs/core-overview)
+- [Container architecture](/docs/infrastructure-container-map)
+- [Core configuration](/docs/core-configuration)
+- [Database migrations](/docs/Migrations)
+- [Upgrading Core](/docs/core-upgrading)

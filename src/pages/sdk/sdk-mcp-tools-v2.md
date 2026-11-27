@@ -7,411 +7,247 @@ nav_order: 8
 
 # MCP Tools
 
-Project David can connect an assistant to tools exposed by a remote [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server.
+Connect an assistant to a remote [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
+server using Streamable HTTP. Register the server, discover its tools and
+attach only the capabilities the assistant needs. Discovery alone does not
+make tools available to an assistant.
 
-The SDK keeps the normal workflow deliberately simple:
+## Configure
 
-1. Register an MCP server.
-2. Discover the tools it currently advertises.
-3. Inspect or select the tools you want.
-4. Attach those tools to an assistant.
+Complete [Authentication](/docs/api_keys) and create an
+[Assistant](/docs/sdk-assistants). Set `PROJECTDAVID_ASSISTANT_ID` to its ID
+and `MCP_SERVER_URL` to your server's MCP endpoint. If the server requires
+bearer authentication, set `MCP_BEARER_TOKEN` in your environment as well.
+The cURL examples use Bash and `jq`; export the environment variables
+before running them.
 
-Discovery does **not** automatically attach every tool exposed by a server. An MCP server can advertise capabilities with very different purposes and side effects, so attachment remains explicit.
+```python interface=python
+import os
 
-## Register an MCP server
-
-```python
+from dotenv import load_dotenv
 from projectdavid import Entity
 
-client = Entity()
+load_dotenv()
 
-server = client.mcp.create_server(
-    name="github",
-    url="https://example.com/mcp",
+client = Entity(
+    base_url=os.getenv("PROJECTDAVID_BASE_URL", "https://api.projectdavid.co.uk"),
+    api_key=os.environ["PROJECTDAVID_API_KEY"],
 )
+assistant_id = os.environ["PROJECTDAVID_ASSISTANT_ID"]
 ```
 
-The returned server registration can be passed directly into discovery:
-
-```python
-tools = client.mcp.discover_tools(server)
+```curl interface=curl
+set -euo pipefail
+BASE_URL="${PROJECTDAVID_BASE_URL:-https://api.projectdavid.co.uk}"
+ASSISTANT_ID="${PROJECTDAVID_ASSISTANT_ID:?Set the assistant ID}"
+: "${PROJECTDAVID_API_KEY:?Set the Project David API key}"
+: "${MCP_SERVER_URL:?Set the MCP server URL}"
 ```
 
-You can also pass a server registration ID:
+## Register a server
 
-```python
-tools = client.mcp.discover_tools("mcp_server_123")
+Authentication is associated with the registration, not each tool call.
+The server URL must be reachable from Core. Registration supports no
+remote authentication or a bearer token; the response exposes `auth_type`,
+not the token. Keep remote credentials separate from the Project David API key.
+
+```python interface=python
+server = client.mcp.create_server(
+    name="Knowledge tools",
+    url=os.environ["MCP_SERVER_URL"],
+    bearer_token=os.getenv("MCP_BEARER_TOKEN") or None,
+)
+server_id = server.id
+print(server_id, server.auth_type)
 ```
+
+```curl interface=curl
+SERVER=$(jq -n '
+  {name:"Knowledge tools",url:env.MCP_SERVER_URL}
+  + (if (env.MCP_BEARER_TOKEN // "") != ""
+     then {auth:{type:"bearer",token:env.MCP_BEARER_TOKEN}}
+     else {} end)' \
+  | curl -fsS "$BASE_URL/v1/mcp/servers" \
+      -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+      -H "Content-Type: application/json" --data-binary @-)
+SERVER_ID=$(jq -er '.id' <<< "$SERVER")
+jq '{id,auth_type}' <<< "$SERVER"
+```
+
+Reuse the returned server ID for subsequent operations rather than creating
+another registration for every Run.
 
 ## Discover tools
 
-`discover_tools()` is the normal SDK entry point for MCP discovery.
+The SDK returns a `McpToolCollection`, following pagination automatically.
+Raw HTTP returns one page with `tools` and an optional `next_cursor`.
+The following examples collect and inspect all pages, with a 100-page limit
+and repeated-cursor detection.
 
-```python
-tools = client.mcp.discover_tools(server)
-```
-
-It automatically follows MCP pagination and returns an `McpToolCollection`.
-
-You do not need to inspect raw response dictionaries or manually follow `next_cursor`.
-
-```python
+```python interface=python
+tools = client.mcp.discover_tools(server_id)
 for tool in tools:
     print(tool.name, tool.description)
 ```
 
-Each discovered tool is represented by an `McpDiscoveredTool` model.
+```curl interface=curl
+discover_tools() {
+  local page cursor seen='[]' i
+  local -a query=()
+  for ((i=0; i<100; i++)); do
+    page=$(curl -fsS -G "$BASE_URL/v1/mcp/servers/$SERVER_ID/tools" \
+      -H "X-API-Key: $PROJECTDAVID_API_KEY" "${query[@]}") || return 1
+    jq -c '.tools[]' <<< "$page" || return 1
+    if jq -e '.next_cursor == null' <<< "$page" >/dev/null; then
+      return 0
+    fi
+    cursor=$(jq -er '.next_cursor' <<< "$page") || return 1
+    if jq -e --arg c "$cursor" 'index($c) != null' <<< "$seen" >/dev/null; then
+      echo "Repeated MCP discovery cursor" >&2
+      return 1
+    fi
+    seen=$(jq -c --arg c "$cursor" '. + [$c]' <<< "$seen") || return 1
+    query=(--data-urlencode "cursor=$cursor")
+  done
+  echo "MCP discovery exceeded 100 pages" >&2
+  return 1
+}
 
-Useful fields include:
-
-```python
-tool.name
-tool.description
-
-tool.server_id
-tool.remote_name
-tool.canonical_id
-tool.provider_name
-tool.definition
+DISCOVERED=$(discover_tools | jq -s '.')
+jq -r '.[] | [.remote_name, (.definition.function.description // "")] | @tsv' \
+  <<< "$DISCOVERED"
 ```
 
-`tool.name` is the ergonomic form of the remote MCP tool name.
+Use the advertised remote name when selecting tools. A discovery record
+also exposes `server_id`, `canonical_id`, `provider_name` and the function
+`definition`. The SDK's `name` property aliases `remote_name`.
 
-`tool.definition` contains the complete Project David function-tool definition produced from the MCP server's advertised schema.
+For explicit page control, use `discover_tools_page(server_id, cursor=...)`.
 
-## Work with a tool collection
+## Attach selected tools
 
-`McpToolCollection` behaves like a read-only sequence:
+Inspect the advertised schemas and side effects before granting access.
+Set `MCP_TOOL_NAME` to a tool name from discovery. In Python, `select()`
+accepts multiple names and rejects unknown names. `attach_tools()` derives
+the server ID from the selected objects; each attachment request must
+contain tools from one server only.
 
-```python
-print(len(tools))
-
-first = tools[0]
-
-for tool in tools:
-    print(tool.name)
-```
-
-It also provides helpers for common discovery tasks.
-
-### Get one tool
-
-```python
-tool = tools.get("search.issues")
-
-if tool is not None:
-    print(tool.description)
-```
-
-`get()` returns `None` when the requested tool is not present.
-
-### Select tools
-
-Use `select()` when an assistant should receive only part of a server's advertised tool set:
-
-```python
-selected = tools.select(
-    "search.issues",
-    "get.issue",
-)
-```
-
-The returned value is another `McpToolCollection`.
-
-Selection preserves the original discovery order and does not duplicate a tool when the same name is supplied more than once.
-
-Requesting a tool that was not discovered raises `ValueError`:
-
-```python
-selected = tools.select(
-    "search.issues",
-    "does.not.exist",
-)
-```
-
-### Get tool names
-
-```python
-names = tools.names()
-```
-
-Example result:
-
-```python
-[
-    "search.issues",
-    "get.issue",
-    "create.issue",
-]
-```
-
-### Get function definitions
-
-```python
-definitions = tools.definitions()
-```
-
-This returns copies of the Project David function-tool definitions for the collection.
-
-### Get canonical IDs
-
-```python
-canonical_ids = tools.canonical_ids()
-```
-
-Canonical IDs are stable Project David identities for the discovered MCP tools.
-
-## Attach selected tools to an assistant
-
-The recommended attachment flow is to pass discovered tool objects directly back to the SDK.
-
-```python
-tools = client.mcp.discover_tools(server)
-
-selected = tools.select(
-    "search.issues",
-    "get.issue",
-)
+```python interface=python
+tool_name = os.environ["MCP_TOOL_NAME"]
+selected = tools.select(tool_name)
 
 attached = client.mcp.attach_tools(
-    assistant_id="assistant_123",
+    assistant_id=assistant_id,
     tools=selected,
 )
-```
-
-You do not need to repeat the MCP server ID. Each discovered tool already carries its server provenance, and `attach_tools()` derives the correct server registration automatically.
-
-The SDK rejects:
-
-- an empty collection;
-- tools from more than one MCP server;
-- values that are not discovered MCP tool models.
-
-The underlying API still receives the remote MCP tool names expected by Project David Core.
-
-## Explicitly attach every discovered tool
-
-If you genuinely want every tool advertised by a server, pass the full collection explicitly:
-
-```python
-tools = client.mcp.discover_tools(server)
-
-attached = client.mcp.attach_tools(
-    assistant_id="assistant_123",
-    tools=tools,
-)
-```
-
-This is intentionally explicit. Calling `discover_tools()` alone never attaches tools to an assistant.
-
-## Inspect before attaching
-
-A useful pattern is to inspect the advertised capabilities before selecting them:
-
-```python
-tools = client.mcp.discover_tools(server)
-
-for tool in tools:
-    print(f"{tool.name}: {tool.description}")
-```
-
-Then attach only the capabilities required by the assistant:
-
-```python
-selected = tools.select(
-    "search.issues",
-    "get.issue",
-)
-
-client.mcp.attach_tools(
-    assistant_id="assistant_123",
-    tools=selected,
-)
-```
-
-Do not assume that every tool exposed by one MCP server belongs to a single coherent or equally trusted capability set.
-
-## Low-level page discovery
-
-Most applications should use `discover_tools()`.
-
-If you specifically need access to one discovery page at a time, use `discover_tools_page()`:
-
-```python
-page = client.mcp.discover_tools_page(server)
-
-for tool in page.tools:
-    print(tool.name)
-
-print(page.next_cursor)
-```
-
-To request the next page manually:
-
-```python
-page = client.mcp.discover_tools_page(
-    server,
-    cursor=page.next_cursor,
-)
-```
-
-`discover_tools_page()` returns an `McpToolDiscoveryPage`.
-
-This low-level method exists for callers that genuinely need page-level control. Ordinary SDK usage should prefer the automatically paginated `discover_tools()` method.
-
-## List tools already attached to an assistant
-
-Use the assistant MCP tool listing endpoint to inspect durable MCP attachments:
-
-```python
-attached = client.mcp.list_assistant_tools(
-    "assistant_123",
-)
-
 for tool in attached:
     print(tool.remote_name, tool.provider_name)
 ```
 
-These are the MCP tools currently attached to the assistant, not the full set currently advertised by the remote server.
+```curl interface=curl
+TOOL_NAME="${MCP_TOOL_NAME:?Set a discovered remote tool name}"
+jq -e --arg name "$TOOL_NAME" \
+  'any(.[]; .remote_name == $name)' <<< "$DISCOVERED" >/dev/null
 
-## Low-level attachment API
-
-The SDK retains the lower-level attachment method for callers that already know the remote MCP tool names:
-
-```python
-attached = client.mcp.attach_assistant_tools(
-    "assistant_123",
-    server_id="mcp_server_123",
-    tools=[
-        "search.issues",
-        "get.issue",
-    ],
-)
+jq -n --arg server "$SERVER_ID" --arg name "$TOOL_NAME" \
+  '{server_id:$server,tools:[$name]}' \
+  | curl -fsS "$BASE_URL/v1/assistants/$ASSISTANT_ID/mcp-tools" \
+      -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+      -H "Content-Type: application/json" --data-binary @-
 ```
 
-For normal discovery-driven workflows, prefer:
+The HTTP attachment body contains remote tool names, not provider names or
+function definitions. Do not copy discovered schemas into the assistant's
+ordinary function array as a substitute for creating MCP attachments.
 
-```python
-tools = client.mcp.discover_tools(server)
+## Inspect attachments
 
-client.mcp.attach_tools(
-    assistant_id="assistant_123",
-    tools=tools.select(
-        "search.issues",
-        "get.issue",
-    ),
-)
+Attachments are distinct from the server's current discovery results.
+List them to see the remote capabilities associated with the assistant.
+
+```python interface=python
+for tool in client.mcp.list_assistant_tools(assistant_id):
+    print(tool.registration_id, tool.remote_name, tool.enabled)
 ```
 
-The higher-level form removes duplicated server information and keeps attachment coupled to actual discovery results.
+```curl interface=curl
+curl -fsS "$BASE_URL/v1/assistants/$ASSISTANT_ID/mcp-tools" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+  | jq '.[] | {registration_id,remote_name,enabled}'
+```
 
-## Detach MCP tools
+## Execute
 
-The low-level detach method removes selected MCP tool attachments from an assistant:
+Use the configured assistant in the normal [Inference](/docs/sdk-inference)
+workflow with a tool-capable model. Project David routes attached MCP tools
+to their registered server. Application-local function handlers are a
+separate integration described in [Function calling](/docs/function-calling-and-tool-execution).
+The remote bearer token does not need to be supplied again in the inference
+request.
 
-```python
+## Rotate the credential
+
+For a bearer-authenticated registration, set `NEW_MCP_BEARER_TOKEN` to the
+replacement token. Rotation updates the existing registration without
+creating a new server ID. Verify discovery after rotation.
+
+```python interface=python
+server = client.mcp.rotate_server_credential(
+    server_id,
+    bearer_token=os.environ["NEW_MCP_BEARER_TOKEN"],
+)
+client.mcp.discover_tools(server)
+```
+
+```curl interface=curl
+: "${NEW_MCP_BEARER_TOKEN:?Set the replacement bearer token}"
+jq -n '{type:"bearer",token:env.NEW_MCP_BEARER_TOKEN}' \
+  | curl -fsS -X PUT "$BASE_URL/v1/mcp/servers/$SERVER_ID/credential" \
+      -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+      -H "Content-Type: application/json" --data-binary @-
+
+# Verify with the discovery helper defined above.
+DISCOVERED=$(discover_tools | jq -s '.')
+```
+
+## Detach tools
+
+Remove the selected capabilities from this assistant without deleting the
+server registration.
+
+```python interface=python
 client.mcp.detach_assistant_tools(
-    "assistant_123",
-    server_id="mcp_server_123",
-    tools=[
-        "search.issues",
-        "get.issue",
-    ],
+    assistant_id,
+    server_id=server_id,
+    tools=[tool_name],
 )
 ```
 
-Detaching an MCP tool removes that assistant's durable attachment to the selected remote capability.
-
-## Manage MCP server registrations
-
-The MCP client also exposes the server management operations used by the Project David MCP API.
-
-### List registered servers
-
-```python
-servers = client.mcp.list_servers()
-
-for server in servers:
-    print(server.id, server.name)
+```curl interface=curl
+jq -n --arg server "$SERVER_ID" --arg name "$TOOL_NAME" \
+  '{server_id:$server,tools:[$name]}' \
+  | curl -fsS -X DELETE "$BASE_URL/v1/assistants/$ASSISTANT_ID/mcp-tools" \
+      -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+      -H "Content-Type: application/json" --data-binary @-
 ```
 
-### Retrieve a server
+## Manage registrations
 
-```python
-server = client.mcp.retrieve_server(
-    "mcp_server_123"
-)
-```
+| Operation | Python SDK | HTTP API |
+|---|---|---|
+| List | `client.mcp.list_servers()` | `GET /v1/mcp/servers` |
+| Retrieve | `client.mcp.retrieve_server(server_id)` | `GET /v1/mcp/servers/{server_id}` |
+| Update | `client.mcp.update_server(server_id, ...)` | `PATCH /v1/mcp/servers/{server_id}` |
+| Delete | `client.mcp.delete_server(server_id)` | `DELETE /v1/mcp/servers/{server_id}` |
 
-### Update a server
+Update supports `name`, `timeout_seconds` and `enabled`. Use the separate
+credential rotation operation to replace a bearer token. Deleting a server
+registration is distinct from detaching a tool; review its use across
+assistants before deleting it.
 
-```python
-server = client.mcp.update_server(
-    "mcp_server_123",
-    name="github-primary",
-)
-```
+## Reference
 
-### Delete a server
-
-```python
-client.mcp.delete_server(
-    "mcp_server_123"
-)
-```
-
-Deleting a server registration is a management operation and is distinct from merely detaching selected tools from one assistant.
-
-## Complete example
-
-```python
-from projectdavid import Entity
-
-client = Entity()
-
-server = client.mcp.create_server(
-    name="github",
-    url="https://example.com/mcp",
-)
-
-tools = client.mcp.discover_tools(server)
-
-print("Available MCP tools:")
-
-for tool in tools:
-    print(f"- {tool.name}: {tool.description}")
-
-selected = tools.select(
-    "search.issues",
-    "get.issue",
-)
-
-attached = client.mcp.attach_tools(
-    assistant_id="assistant_123",
-    tools=selected,
-)
-
-print("Attached:")
-for tool in attached:
-    print(f"- {tool.remote_name}")
-```
-
-The important distinction is:
-
-```text
-MCP server
-    ↓
-discover_tools()
-    ↓
-McpToolCollection
-    ↓
-inspect / select
-    ↓
-attach_tools()
-    ↓
-assistant
-```
-
-Discovery tells you what the remote MCP server currently advertises.
-
-Attachment determines which of those capabilities Project David makes available to a particular assistant.
+- [MCP SDK Reference](/docs/sdk-reference-mcp)
+- [Authentication](/docs/api_keys)
+- [Inference](/docs/sdk-inference)
+- [HTTP API Reference](/docs/api-reference)

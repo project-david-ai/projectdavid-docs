@@ -67,15 +67,7 @@
 .api-markdown th         { font-weight: 600; font-size: 0.875rem; }
 .api-markdown td code    { background: #f3f4f6; padding: 0.125rem 0.375rem; border-radius: 4px; font-size: 0.8rem; }
 
-/* ----------  CodePanel cell  ---------- */
-.code-panel { width: 100%; margin: 0 0 2rem 0; }
-.code-body  { overflow-x: auto; word-break: normal; }
-
-/* subtle thumb */
-.code-body::-webkit-scrollbar       { height: 6px; }
-.code-body::-webkit-scrollbar-track { background: transparent; }
-.code-body::-webkit-scrollbar-thumb { background: #6b7280; border-radius: 3px; }
-.code-body { scrollbar-width: thin; scrollbar-color: #6b7280 transparent; }
+.api-grid .code-panel { margin: 0 0 2rem; }
 
 /* ===========================  Responsive  =========================== */
 
@@ -103,11 +95,9 @@
   .api-markdown h3 { font-size: 1.05rem; }
 
   /* 4️⃣  Code & pre blocks align with column, soft radius */
-  .code-panel,
+  .api-grid .code-panel,
   .api-markdown pre {
-    margin: 1rem 0;        /* inside gutters                       */
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0,0,0,.05);
+    margin: 1rem 0;
   }
 
   /* 5️⃣  Tables wrap instead of horizontal-scrolling */
@@ -137,19 +127,17 @@
   .api-markdown h2 { font-size: 1.15rem; }
   .api-markdown h3 { font-size: 1rem;  }
 
-  .code-body { font-size: 0.8rem; }
   .api-row   { gap: 1.5rem; }
 }
 
 /* ────────────────────────────────────────────────────────────────────
    Multiple code panels in same column (e.g. request + response)
 ───────────────────────────────────────────────────────────────────── */
-.code-panel + .code-panel { margin-top: 2rem; }
+.api-grid .code-panel + .code-panel { margin-top: 2rem; }
 
 .api-row .code-panel:first-of-type:last-of-type { margin-bottom: 2rem; }
 
-.code-panel pre { margin: 0; }
 
 @media (max-width: 1024px) {
-  .code-panel + .code-panel { margin-top: 1.5rem; }
+  .api-grid .code-panel + .code-panel { margin-top: 1.5rem; }
 }

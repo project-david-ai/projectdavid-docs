@@ -7,194 +7,97 @@ nav_order: 3
 
 # Upgrading Platform
 
-Project David Platform has two independent upgrade tracks. Understanding the distinction is important — they are separate things and can be updated independently.
+Project David Platform distributes the deployment CLI and configuration templates separately from the runtime container images. Updating one does not necessarily update the other.
 
----
+| Component | Upgrade command |
+|---|---|
+| Platform package | `pip install --upgrade projectdavid-platform` |
+| Runtime images | `pdavid --mode up --pull` |
 
-## The Two Upgrade Tracks
+Check release compatibility before upgrading either component independently.
 
-| Track | What it upgrades | How |
-|---|---|---|
-| **Python package** | The `pdavid` CLI, orchestrator, bundled compose files, and packaging logic | `pip install --upgrade projectdavid-platform` |
-| **Docker images** | The runtime containers — API server, sandbox, training worker | `pdavid --mode up --pull` |
+## Before upgrading
 
-These are independent. You can upgrade the package without pulling new images, and you can pull new images without upgrading the package. They are versioned separately and released on different schedules.
+Use the same Python environment and runtime directory as the existing deployment. If you normally select the runtime with `--runtime-dir` or `PDAVID_RUNTIME_HOME`, retain that selection.
 
----
+- Review the release changes and schedule a maintenance window. Allow active runs to finish and pause new submissions.
+- Back up the runtime directory, including `.env`, instance identity, Compose configuration and any local overrides. Protect the backup as sensitive credential material.
+- Take consistent backups of the database, vector store and uploaded file storage. Include any other persistent mounts used by your deployment, including storage outside the runtime directory.
+- Record the installed package version and the image IDs or registry digests of the running containers. Verify that the backups can be restored.
 
-## Track 1 — Python Package Upgrade
+## Upgrade
 
-The Python package contains the `pdavid` CLI, the orchestrator logic, and the bundled compose file templates. Upgrading it gives you new CLI flags, bug fixes to the orchestration layer, and updated compose templates.
+From the existing runtime directory, with the intended Python environment active:
 
 ```bash
 pip install --upgrade projectdavid-platform
-```
-
-After upgrading the package, the CLI will notify you on the next run if new Docker images are also available:
-
-```
-============================================================
-  Platform update detected
-============================================================
-  Installed : 1.92.0
-  Running   : 1.91.0
-
-  New features and fixes are available.
-  What's new: https://github.com/project-david-ai/platform/blob/master/CHANGELOG.md
-
-  To apply the update and pull the latest container images:
-
-    pdavid --mode up --pull
-
-  Your data and secrets are not affected.
-============================================================
-```
-
-The notice fires once per upgrade and does not repeat. It never pulls images automatically — you decide when to apply the Docker image update.
-
-To check the installed package version:
-
-```bash
-pip show projectdavid-platform | grep Version
-```
-
----
-
-## Track 2 — Docker Image Upgrade
-
-The Docker images contain the runtime — the API server, sandbox, and training worker. Upgrading them gives you new API features, inference improvements, and bug fixes to the core runtime.
-
-```bash
 pdavid --mode up --pull
 ```
 
-The `--pull` flag tells Docker Compose to pull the latest `:latest` tagged images from Docker Hub before starting the stack. Your data and secrets are not affected.
+The first command updates the CLI and bundled templates. The second invokes Docker Compose with `up --pull always`, refreshing images referenced by the effective Compose configuration and starting the stack. Compose can recreate containers when images or configuration change.
 
-To check which images are currently running:
+Platform reconciles generated environment defaults and can layer updated packaged Compose definitions over existing configuration. Retaining local files does not guarantee that their effective settings remain unchanged.
 
-```bash
-docker images | grep thanosprime
-```
+The ordinary startup upgrade notice compares the installed package version with `PDAVID_VERSION` and updates that marker before Compose startup. It is not an image-availability check or proof that the runtime upgrade succeeded.
 
-To check the running stack version:
+## Verify the deployment
 
-```bash
-cat .env | grep PDAVID_VERSION
-curl http://localhost:80/v1/health
-```
-
----
-
-## Upgrading Both Tracks Together
-
-The most common upgrade path — new package and new images at the same time:
+Check the package version, running containers and service logs:
 
 ```bash
-# 1. Upgrade the package
-pip install --upgrade projectdavid-platform
-
-# 2. Pull latest images and recreate containers
-pdavid --mode up --pull
+pip show projectdavid-platform
+docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
+pdavid --mode logs --services api --tail 100
 ```
 
----
-
-## How Data is Protected
-
-All persistent data lives in named Docker volumes. These survive both upgrade tracks:
-
-| Volume | Contents |
-|---|---|
-| `mysql_data` | All assistant, thread, message, run, file, and user data |
-| `qdrant_storage` | Vector store embeddings |
-| `redis_data` | Queue state |
-| `ollama_data` | Downloaded model weights |
-
-Named volumes are only removed if you explicitly pass `--clear-volumes`:
+`docker ps` lists running containers across the Docker host; identify those belonging to your deployment. The displayed image reference is not necessarily immutable. To inspect the actual image ID, substitute the relevant container name below:
 
 ```bash
-# This destroys data — only run if you intend to start fresh
-pdavid --mode down_only --clear-volumes
+docker inspect --format '{{.Image}}' "$API_CONTAINER"
 ```
 
----
+Set `API_CONTAINER` to the name of your API container from the preceding listing.
 
-## How Migrations Work
-
-The API container runs `alembic upgrade head` automatically on every startup. Alembic applies any pending schema changes and leaves existing data untouched.
-
-You do not need to run migrations manually. If the API container starts successfully, migrations have passed.
-
-To check migration status if something goes wrong:
+Check the API health endpoint, using your own deployment URL if different:
 
 ```bash
-docker exec -it fastapi_cosmic_catalyst alembic current
-docker exec -it fastapi_cosmic_catalyst alembic history
+curl -fsS http://localhost:80/v1/health
 ```
 
----
+Inspect the response and logs, then use an existing application key to verify resource access and a representative inference request. Health alone does not establish successful migrations, inference availability or complete data integrity. Resume traffic only after these checks pass.
 
-## Upgrade Options Reference
+## Persistent state and migrations
 
-| Command | When to use |
-|---|---|
-| `pdavid --mode up --pull` | Pull latest Docker images and recreate containers |
-| `pdavid --mode up --force-recreate` | Force container recreation without pulling new images |
-| `pdavid --mode up --pull --force-recreate` | Pull latest images and force full recreation |
-| `pdavid --mode down_only` then `pdavid --mode up --pull` | Full stop and restart — when containers are in a bad state |
+Routine upgrades do not explicitly request volume deletion. Container-local state and active connections may be lost when services are recreated. Persistent database records, vectors and files depend on preserving the correct storage mounts and credentials.
 
----
+Database schema changes may accompany a runtime update. Review migration errors in the API logs before accepting the deployment. Do not assume a container starting successfully proves every migration is complete or reversible.
 
-## What Does and Does Not Survive an Upgrade
+Never use `--clear-volumes` or `--nuke` during a routine upgrade or rollback. These are destructive operations, not recovery procedures.
 
-| What | Survives? | Notes |
-|---|---|---|
-| Database data | ✅ Yes | `mysql_data` named volume |
-| Vector embeddings | ✅ Yes | `qdrant_storage` named volume |
-| Uploaded files | ✅ Yes | `SHARED_PATH` volume |
-| `.env` file | ✅ Yes | Never touched after initial generation |
-| Local compose file edits | ✅ Yes | Platform never overwrites existing files |
-| Container state | ❌ No | Containers are recreated on upgrade |
-| In-flight runs | ❌ No | Runs in progress when containers stop must be resubmitted |
-| HuggingFace model cache | ✅ Yes | `HF_CACHE_PATH` is a host path mount — survives everything |
+## Recovery
 
----
-
-## Pinning to a Specific Version
-
-The platform always pulls `:latest` Docker images by default. If you need to pin to a specific release for stability or compliance reasons, edit `docker-compose.yml` in your working directory:
-
-```yaml
-services:
-  api:
-    image: thanosprime/projectdavid-core-api:1.28.1  # pin to specific version
-```
-
-> Local edits to compose files are preserved — the platform never overwrites files that already exist in your working directory.
-
----
-
-## Rolling Back
-
-**Rolling back the Docker images:**
+If a deployment fails verification, keep traffic paused and inspect the service logs. If necessary, stop the stack without removing volumes:
 
 ```bash
-# Pin to previous image version in docker-compose.yml, then:
-pdavid --mode up --force-recreate
+pdavid --mode down_only
 ```
 
-**Rolling back the Python package:**
+A previous package version can be reinstalled from your recorded release, provided it is available:
 
 ```bash
-pip install projectdavid-platform==<previous_version>
+pip install "projectdavid-platform==$PREVIOUS_PLATFORM_VERSION"
 ```
 
-Both can be rolled back independently.
+Set `PREVIOUS_PLATFORM_VERSION` to the exact previously installed version before running this command.
 
----
+Reinstalling the package alone does not restore previous container images, Compose settings or database schemas. A complete rollback requires compatible image versions, deployment configuration, credentials and persistent state. Restore them using a tested recovery procedure appropriate to the release.
 
-## Related
+Do not assume that editing a single image tag in the local Compose file pins the entire deployment: reconciliation overlays can affect the effective image references. A general-purpose version-pinning and rollback workflow is not established by these commands.
 
-- [Platform Overview](/docs/platform-overview) — quick start and stack modes
-- [Configuration Reference](/docs/platform-configuration) — environment variable reference
-- [Core Upgrading](/docs/core-upgrading) — upgrade guide for source deployments
+## Reference
+
+- [Platform Overview](/docs/platform-overview)
+- [Self-hosted Setup](/docs/boot_strap_guide)
+- [Configuration Reference](/docs/platform-configuration)
+- [Platform Commands](/docs/boot_strap_guide#runtime-management)
+- [Core Upgrading](/docs/core-upgrading)

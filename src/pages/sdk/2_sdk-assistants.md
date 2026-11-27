@@ -6,124 +6,259 @@ lifecycle_step: create_assistant
 nav_order: 2
 ---
 
-
 # Assistants
 
-## Overview
+An Assistant is a persistent configuration for an AI agent: its model,
+instructions and capabilities. Reuse its ID across conversations instead of
+creating a new Assistant for each request.
 
-Create an Assistant by defining its custom instructions and picking a model. If helpful, add files and enable tools like Code Interpreter, File Search, and Function calling.
+| Resource | Responsibility |
+|---|---|
+| Assistant | Model, instructions and capabilities |
+| Thread | Conversation context |
+| Run | An individual execution |
 
-### Basic Assistant Operations
+## Configure
 
-```python
+Complete [Authentication](/docs/api_keys) first. Run the following examples
+in the same Python session or Bash session.
 
+```python interface=python
+import os
+
+from dotenv import load_dotenv
 from projectdavid import Entity
 
-client = Entity()
+load_dotenv()
 
-# Create assistant
-
-assistant = client.assistants.create_assistant(
-    name='Mathy',
-    description='test_case',
-    model='llama3.1',
-    instructions='You are a helpful math tutor.'
+client = Entity(
+    base_url=os.getenv("PROJECTDAVID_BASE_URL", "https://api.projectdavid.co.uk"),
+    api_key=os.environ["PROJECTDAVID_API_KEY"],
 )
-print(f"Assistant created: ID: {assistant.id}")
-
-
-# Retrieve an Assistant
-
-retrieved_assistant = client.assistants.retrieve_assistant(assistant_id=assistant.id)
-
-print(retrieved_assistant)
-
-# Update and assistant
-
-client.assistants.update_assistant(
-    assistant_id=assistant.id,
-    name='Mathy',
-    description='test_update',
-    instructions='You are now a world class poker player.'
-)
-
-# Delete an assistant 
-
-client.assistants.delete_assistant(assistant_id=assistant.id)
 ```
 
+```bash interface=curl
+BASE_URL="${PROJECTDAVID_BASE_URL:-https://api.projectdavid.co.uk}"
+set -o pipefail
+```
 
-## Inference Parameters
+## Create an assistant
 
-You can control how the model generates responses by setting `max_tokens`,
-`temperature`, and `top_p` at assistant creation time. These parameters are
-stored on the assistant record and applied automatically to every inference
-call made by that assistant.
+Choose a provider-qualified model and define the instructions that guide the
+assistant's behaviour.
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `max_tokens` | `int` or `None` | `None` | Maximum tokens to generate per response. When `None`, the model provider's default applies. |
-| `temperature` | `float` | `1.0` | Sampling temperature. Lower values produce more focused, deterministic output. Higher values produce more varied output. Valid range: `0.0` – `2.0`. |
-| `top_p` | `float` or `None` | `None` | Nucleus sampling threshold. When `None`, the provider default applies. Valid range: `0.0` – `1.0`. |
-
-### Setting Parameters at Creation
-```python
+```python interface=python
 assistant = client.assistants.create_assistant(
-    name='Precise Assistant',
-    model='llama3.1',
-    instructions='You are a precise technical assistant.',
-    max_tokens=2048,
+    name="Network Assistant",
+    model="hyperbolic/deepseek-v4-flash-0731",
+    instructions="You are a precise network engineering assistant.",
+)
+
+assistant_id = assistant.id
+print(assistant_id)
+```
+
+```curl interface=curl
+ASSISTANT_ID=$(curl -fsS "$BASE_URL/v1/assistants" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "Network Assistant",
+    "model": "hyperbolic/deepseek-v4-flash-0731",
+    "instructions": "You are a precise network engineering assistant."
+  }' | jq -er '.id')
+
+printf '%s\n' "$ASSISTANT_ID"
+```
+
+Core derives ownership from the authenticated API key. No user ID is required
+when creating an assistant. Store the returned assistant ID for later use.
+
+Creating an assistant does not execute inference. Provider credentials are
+selected separately when executing a run.
+
+## Retrieve an assistant
+
+```python interface=python
+assistant = client.assistants.retrieve_assistant(assistant_id)
+print(assistant.model, assistant.instructions)
+```
+
+```curl interface=curl
+curl -fsS "$BASE_URL/v1/assistants/$ASSISTANT_ID" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+  | jq '{model, instructions}'
+```
+
+## List assistants
+
+```python interface=python
+for item in client.assistants.list():
+    print(item.id, item.name)
+```
+
+```curl interface=curl
+curl -fsS "$BASE_URL/v1/assistants" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+  | jq '.[] | {id, name}'
+```
+
+The API lists assistants associated with the authenticated user.
+
+## Update an assistant
+
+Send the fields you want to change. The assistant retains its identity.
+
+```python interface=python
+assistant = client.assistants.update_assistant(
+    assistant_id=assistant_id,
+    name="Network Troubleshooter",
+    instructions="Diagnose network faults using the evidence provided.",
+)
+```
+
+```curl interface=curl
+curl -fsS -X PUT "$BASE_URL/v1/assistants/$ASSISTANT_ID" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "Network Troubleshooter",
+    "instructions": "Diagnose network faults using the evidence provided."
+  }'
+```
+
+The model can also be changed through the update operation. Use a model supported
+by the intended inference provider.
+
+## Inference parameters
+
+Configure generation settings on creation or update.
+
+| Parameter | Default | Valid values |
+|---|---|---|
+| `temperature` | `1.0` | `0.0`–`2.0` |
+| `top_p` | `1.0` | `0.0`–`1.0` |
+| `max_tokens` | `null` | Positive integer or `null` |
+
+`temperature` controls sampling variability. `top_p` limits the probability
+mass considered during sampling. `max_tokens` limits generated tokens per
+inference pass; `null` leaves the limit to the provider defaults.
+
+```python interface=python
+assistant = client.assistants.update_assistant(
+    assistant_id=assistant_id,
     temperature=0.2,
-    top_p=0.85,
-)
-```
-
-### Deferring to Model Defaults
-
-If you omit these parameters or pass `None`, the model provider's built-in
-defaults are used. This is the recommended approach unless you have a specific
-reason to override them.
-```python
-# All three parameters omitted — provider defaults apply
-assistant = client.assistants.create_assistant(
-    name='Standard Assistant',
-    model='llama3.1',
-    instructions='You are a helpful assistant.',
-)
-```
-
-### Updating Parameters on an Existing Assistant
-```python
-client.assistants.update_assistant(
-    assistant_id=assistant.id,
-    temperature=0.7,
-    max_tokens=4096,
-)
-```
-
-### Common Configurations
-```python
-# Creative writing — high temperature, no token cap
-assistant = client.assistants.create_assistant(
-    name='Creative Writer',
-    instructions='You are a creative writing assistant.',
-    temperature=1.4,
-    top_p=0.95,
-)
-
-# Precise technical assistant — low temperature, capped output
-assistant = client.assistants.create_assistant(
-    name='Technical Assistant',
-    instructions='You are a precise technical assistant.',
-    temperature=0.2,
     max_tokens=2048,
 )
+```
 
-# Agentic loop — needs longer outputs for tool calls
-assistant = client.assistants.create_assistant(
-    name='Agent',,
-    instructions='You are an autonomous agent.',
-    temperature=0.6,
-    max_tokens=8192,
+```curl interface=curl
+curl -fsS -X PUT "$BASE_URL/v1/assistants/$ASSISTANT_ID" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"temperature":0.2,"max_tokens":2048}'
+```
+
+Assistant settings are stored configuration. Run creation can supply its own
+model and sampling parameters, and providers may impose additional limits.
+When a specific sampling configuration is required, set it explicitly on the Run
+as well. Lower temperature does not guarantee deterministic output.
+
+## Configure capabilities
+
+An assistant can be configured for different execution capabilities.
+
+| Field | Purpose |
+|---|---|
+| `tools` | Tool definitions, including application-defined functions |
+| `tool_resources` | Resources used by tools |
+| `web_access` | Enable web access |
+| `agent_mode` | Enable autonomous execution |
+| `max_turns` | Limit execution iterations |
+| `deep_research` | Enable deep research |
+
+For example, declare a local function that an application can execute when
+requested by the model.
+
+```python interface=python
+assistant = client.assistants.update_assistant(
+    assistant_id=assistant_id,
+    tools=[{
+        "type": "function",
+        "function": {
+            "name": "get_device_status",
+            "description": "Retrieve the status of a network device.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "hostname": {"type": "string"},
+                },
+                "required": ["hostname"],
+            },
+        },
+    }],
 )
 ```
+
+```curl interface=curl
+curl -fsS -X PUT "$BASE_URL/v1/assistants/$ASSISTANT_ID" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "tools": [{
+      "type": "function",
+      "function": {
+        "name": "get_device_status",
+        "description": "Retrieve the status of a network device.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "hostname": {"type": "string"}
+          },
+          "required": ["hostname"]
+        }
+      }
+    }]
+  }'
+```
+
+When updating tools, supply the complete intended tool list. A function definition
+is a declaration, not executable code. Your application implements the function
+and returns its result during execution.
+
+Registered MCP tools and vector stores have separate resource management
+interfaces; see their references below.
+
+## Use an assistant
+
+Pass the assistant ID when creating a Run against a Thread. Reuse the same
+assistant for subsequent runs without repeating its configuration.
+
+See [Quick Start](/docs/sdk-quick-start) for the complete streaming lifecycle.
+
+## Delete an assistant
+
+When the assistant is no longer needed, delete it. Do not run this example if
+you intend to keep using the assistant created above.
+
+```python interface=python
+client.assistants.delete_assistant(assistant_id, permanent=False)
+```
+
+```curl interface=curl
+curl -fsS -X DELETE \
+  "$BASE_URL/v1/assistants/$ASSISTANT_ID?permanent=false" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY"
+```
+
+Deletion is soft by default. The HTTP API returns `204 No Content` on success;
+the SDK returns a deletion result. Setting `permanent=True` in Python or
+`permanent=true` in the HTTP query requests irreversible deletion.
+
+## Reference
+
+- [Assistants SDK Reference](/docs/sdk-reference-assistants)
+- [Runs SDK Reference](/docs/sdk-reference-runs)
+- [MCP SDK Reference](/docs/sdk-reference-mcp)
+- [Vector Stores SDK Reference](/docs/sdk-reference-vector-stores)
+- [HTTP API Reference](/docs/api-reference)

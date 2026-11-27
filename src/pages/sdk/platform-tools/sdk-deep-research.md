@@ -7,99 +7,99 @@ nav_exclude: true
 
 # Deep Research
 
-Deep Research is a platform capability that orchestrates multiple assistants and tools to perform autonomous, multi-step investigation on a user’s behalf.
+Use delegated research for tasks requiring multiple searches, evidence gathering and synthesis. It can involve multiple inference passes rather than a single response.
 
-When invoked, Deep Research decomposes a user’s query into research tasks and executes a recursive workflow that may include:
+## Enable Deep Research
 
-- Web search  
-- Document retrieval  
-- Cross-source comparison  
-- Iterative summarisation  
-- Synthesis into a structured report  
+Complete [Authentication](/docs/api_keys) first. The examples create an assistant; they do not execute inference. Use a model and runtime that support the capability.
 
-The system operates agentically, allowing specialised assistants to collaborate in order to:
+```python interface=python
+import os
 
-- Identify relevant sources  
-- Validate findings across independent references  
-- Refine intermediate hypotheses  
-- Produce a final, citation-grounded response aligned with the user’s intent  
-
-Deep Research is designed for queries that require:
-
-- Multi-hop reasoning  
-- Evidence gathering  
-- Long-horizon synthesis beyond a single model inference pass  
-
-The result is returned as a consolidated research report suitable for downstream reasoning or user presentation.
-
----
-
-## Deep Research Capability Assignment
-
-You can assign the Deep Research capability to your assistant at creation time.
-
-When enabled, user prompts will be routed into the Deep Research execution loop by default. However, it is recommended that this capability be programmatically toggled on or off depending on the specific use case.
-
-Selective activation allows you to balance latency, cost, and autonomy — ensuring that Deep Research is invoked only when recursive, citation-driven analysis is required, while standard interaction paths remain available for lower-overhead tasks.
-
-
-```python
-from projectdavid import Entity
 from dotenv import load_dotenv
-# ------------------------------------------------------------------
-# 0.  SDK init + env
-# ------------------------------------------------------------------
+from projectdavid import Entity
+
 load_dotenv()
 
 client = Entity(
-    base_url=os.getenv(),
-    api_key=os.getenv("PROJECTDAVID_API_KEY"),
+    base_url=os.getenv("PROJECTDAVID_BASE_URL", "https://api.projectdavid.co.uk"),
+    api_key=os.environ["PROJECTDAVID_API_KEY"],
 )
-
 
 assistant = client.assistants.create_assistant(
-    name="Test Assistant",
-    model="gpt-oss-120b",
-    instructions="You are a helpful AI assistant, your name is Nexa.",
-    tools=[
-        {"type": "web_search"},
-    deep_research=True,    
-        
-        
-    ],
-
+    name='Research Assistant',
+    model='hyperbolic/deepseek-v4-flash-0731',
+    instructions='Investigate the question using available sources. Distinguish verified evidence from uncertainty.',
+    tools=[{'type': 'web_search'}],
+    deep_research=True,
 )
-
-
+print(assistant.id)
 ```
-### Toggling states
 
-To toggle between deep research states, use the assistant update method.
+```curl interface=curl
+BASE_URL="${PROJECTDAVID_BASE_URL:-https://api.projectdavid.co.uk}"
+BASE_URL="${BASE_URL%/}"
+: "${PROJECTDAVID_API_KEY:?Set your API key}"
 
-```python
-update_assistant = client.assistants.update_assistant(
-    assistant_id="YOUR_ASSISTANTS_ID",
+curl -fsS "$BASE_URL/v1/assistants" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+  -H 'Content-Type: application/json' \
+  --data-binary @- <<'JSON'
+{
+  "name": "Research Assistant",
+  "model": "hyperbolic/deepseek-v4-flash-0731",
+  "instructions": "Investigate the question using available sources. Distinguish verified evidence from uncertainty.",
+  "tools": [
+    {
+      "type": "web_search"
+    }
+  ],
+  "deep_research": true
+}
+JSON
+```
+
+## Execute
+
+Use the returned assistant in the [Inference](/docs/sdk-inference) workflow, with a registered provider credential. Create a thread, message and run, then consume the inference stream. A tool declaration makes the capability available; it does not guarantee that the model will invoke it.
+
+Use a research-capable model. Allow for additional latency and provider usage. The resulting report is model-generated; verify consequential claims against their sources.
+
+## Disable Deep Research
+
+The flag is an assistant setting. Update it before creating the next run; this is not cancellation of an active run. Continue with the client and assistant created above. For HTTP, set `ASSISTANT_ID` to the ID returned by the create request.
+
+```python interface=python
+assistant = client.assistants.update_assistant(
+    assistant_id=assistant.id,
     deep_research=False,
 )
 ```
 
+```curl interface=curl
+curl -fsS -X PUT "$BASE_URL/v1/assistants/$ASSISTANT_ID" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"deep_research":false}'
+```
 
+Other tool and web-access settings are separate from this flag.
 
+## Stream research activity
 
----
+| Raw event type | Python SDK event |
+|---|---|
+| `research_status` | `ResearchStatusEvent` |
+| `web_status` | `WebStatusEvent` |
+| `scratchpad_status` | `ScratchpadEvent` |
+| `content` | `ContentEvent` |
 
-## Appropriate Use Cases
+Route progress independently of response text. Where supplied, use the scratchpad event's `assistant_id` to distinguish participating agents. Retrieve the Run to verify its final state rather than inferring completion from a progress message.
 
-Use Deep Research when:
+## Reference
 
-- A query requires investigation across multiple sources  
-- Evidence must be gathered and validated  
-- Intermediate reasoning steps must inform subsequent search  
-- A synthesised, citation-based output is required  
-
-Avoid using Deep Research for:
-
-- Simple factual queries  
-- Single-step transformations  
-- Latency-sensitive conversational turns  
-- Tasks that do not require external validation  
+- [Tools](/docs/sdk-tools)
+- [Assistants](/docs/sdk-assistants)
+- [Streaming Protocol](/docs/sdk-stream-contract)
+- [Event reference](/docs/sdk-reference-events)
+- [Scratchpad tool](/docs/sdk-scratch-pad)

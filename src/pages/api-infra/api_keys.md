@@ -1,267 +1,273 @@
-# 🔐 Entities V1 — API Key Authentication & Provisioning
-
-## Overview
-
-Entities V1 uses a secure, user-scoped API key system to authenticate requests. Each key is uniquely tied to a user and must be included in the `X-API-Key` header for all protected endpoints.
-
+---
+title: Authentication
+category: sdk
+slug: api_keys
+nav_order: 1.5
 ---
 
-## 🔧 Admin Bootstrap: First-Time Setup
+# Authentication
 
-On first-time deployment, you must create an **Admin user** and provision the first API key:
+Project David separates application authentication from inference
+and remote tool credentials.
 
-```
-python scripts/bootstrap_admin.py
-```
+| Credential | Purpose |
+|---|---|
+| API key | Access the Project David API |
+| Provider key | Authorize model inference |
+| MCP credential | Authorize remote tool access |
 
-This will:
-- Create an admin user (`ADMIN_EMAIL` from `.env`)
-- Generate a **plain API key**
-- Save the key to:
-  - `.env` under `PROJECTDAVID_API_KEY`
-  - `admin_credentials.txt` (DO NOT COMMIT)
+## API keys
 
-**Sample Output:**
+Obtain an API key from the
+[Dashboard](https://platform.projectdavid.co.uk).
 
-```
-ADMIN_USER_EMAIL=admin@example.com  
-ADMIN_USER_ID=user_abc123  
-ADMIN_KEY_PREFIX=ad_LV39xQKw  
-ADMIN_API_KEY=ad_LV39xQKw3kYxrMNqETaFek3YzTZG5rPE
-```
+Store the key in your environment rather than embedding it
+in application source.
 
----
-
-## 🔑 How to Pass Your API Key into the `Entity` Interface
-
-The `Entity` interface provides a unified entry point to all service clients (users, assistants, tools, etc.), and supports API key injection at construction time.
-
-You have **two clean options** for passing your API key.
-
----
-
-### 1. ✅ Set via `.env` File (Default Fallback)
-
-Place this in your `.env` file:
-
-```env
-ADMIN_API_KEY=us_8slj8dKf39x...ZmwtYeS
+```dotenv interface=python
+# .env
+PROJECTDAVID_API_KEY=your_project_david_api_key
 ```
 
-Then simply initialize:
+```bash interface=curl
+read -rsp "Project David API key: " PROJECTDAVID_API_KEY
+export PROJECTDAVID_API_KEY
+echo
+```
 
-```python
+Authenticate a request to list your assistants.
+
+```python interface=python
+import os
+
+from dotenv import load_dotenv
 from projectdavid import Entity
 
-client = Entity()  # uses ADMIN_API_KEY from environment
+load_dotenv()
+
+client = Entity(
+    base_url="https://api.projectdavid.co.uk",
+    api_key=os.environ["PROJECTDAVID_API_KEY"],
+)
+
+assistants = client.assistants.list()
 ```
 
-No need to manually pass the key if your environment is configured correctly.
+```curl interface=curl
+BASE_URL="https://api.projectdavid.co.uk"
 
----
-
-### 2. ✅ Pass Explicitly (Overrides `.env`)
-
-```python
-from projectdavid import Entity
-
-client = Entity(api_key="us_8slj8dKf39x...ZmwtYeS")
+curl -fsS "$BASE_URL/v1/assistants" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY"
 ```
 
-This is ideal for:
+The SDK supplies the `X-API-Key` header automatically.
 
-- Testing
-- CI pipelines
-- Dynamic switching between users
+## Manage API keys
 
----
+Applications can create, list and revoke their own API keys.
 
-### 🧠 What Happens Internally?
+For key management operations, supply the user ID associated
+with your authenticated account.
 
-All service clients inside `Entity` (like `.users`, `.runs`, `.assistants`, etc.) are lazily instantiated and passed the `api_key`:
+### Create a key
 
-```python
-self._users_client = UsersClient(
-    base_url=self.base_url,
-    api_key=self.api_key
+```python interface=python
+new_key = client.keys.create_key(
+    user_id=os.environ["PROJECTDAVID_USER_ID"],
+    key_name="Production",
+    expires_in_days=90,
+)
+
+# Store new_key.plain_key securely.
+# new_key.details.prefix identifies the key.
+```
+
+```curl interface=curl
+# Set PROJECTDAVID_USER_ID to your own user ID first.
+
+KEY_RESPONSE=$(curl -fsS \
+  "$BASE_URL/v1/users/$PROJECTDAVID_USER_ID/apikeys" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"key_name":"Production","expires_in_days":90}')
+
+NEW_API_KEY=$(jq -er '.plain_key' <<< "$KEY_RESPONSE")
+KEY_PREFIX=$(jq -er '.details.prefix' <<< "$KEY_RESPONSE")
+
+unset KEY_RESPONSE
+```
+
+The full key is returned only when created. Transfer it to
+your secret store before ending the session.
+
+### List keys
+
+```python interface=python
+keys = client.keys.list_keys(
+    user_id=os.environ["PROJECTDAVID_USER_ID"],
+)
+
+for key in keys:
+    print(key.prefix, key.key_name, key.is_active)
+```
+
+```curl interface=curl
+curl -fsS \
+  "$BASE_URL/v1/users/$PROJECTDAVID_USER_ID/apikeys" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY"
+```
+
+Listing keys returns metadata, not the original secrets.
+
+### Rotate a key
+
+1. Create a replacement key.
+2. Update applications to use the replacement.
+3. Verify authentication.
+4. Revoke the previous key.
+
+Do not revoke an existing key until its replacement
+has been verified.
+
+See [API Keys](/docs/sdk-reference-api-keys)
+for the complete management interface.
+
+## Provider keys
+
+Bring your own inference provider credentials (BYOK).
+
+Register a provider key once and reference its identifier
+in subsequent inference requests.
+
+```dotenv interface=python
+# Add to .env
+PROVIDER_API_KEY=your_hyperbolic_api_key
+```
+
+```bash interface=curl
+read -rsp "Provider API key: " PROVIDER_API_KEY
+export PROVIDER_API_KEY
+echo
+```
+
+### Register a provider key
+
+```python interface=python
+import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+provider_key = client.provider_keys.create(
+    provider="hyperbolic",
+    api_key=os.environ["PROVIDER_API_KEY"],
+    name="Production inference",
+)
+
+provider_key_id = provider_key.id
+```
+
+```curl interface=curl
+PROVIDER_KEY_ID=$(jq -n \
+  '{provider:"hyperbolic",
+    api_key:env.PROVIDER_API_KEY,
+    name:"Production inference"}' \
+  | curl -fsS "$BASE_URL/v1/provider-keys" \
+      -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+      -H "Content-Type: application/json" \
+      --data-binary @- \
+  | jq -er '.id')
+```
+
+The returned identifier selects the registered credential.
+Registration responses do not contain the provider secret.
+
+Pass `provider_key_id` when configuring inference, as shown
+in the [Quick Start](/docs/sdk-quick-start).
+
+### Rotate a provider key
+
+Register the replacement credential, update applications
+to use its identifier, verify inference and revoke the
+previous credential.
+
+Updating a provider key's name does not replace its secret.
+
+See [Provider Keys](/docs/sdk-reference-provider-keys).
+
+## MCP credentials
+
+Remote MCP servers can be registered with bearer authentication.
+
+Configure `MCP_SERVER_URL` and `MCP_BEARER_TOKEN` in your
+environment using the credentials issued by your MCP server.
+
+```python interface=python
+server = client.mcp.create_server(
+    name="My MCP Server",
+    url=os.environ["MCP_SERVER_URL"],
+    bearer_token=os.environ["MCP_BEARER_TOKEN"],
+)
+
+server_id = server.id
+```
+
+```curl interface=curl
+MCP_SERVER_ID=$(jq -n \
+  '{name:"My MCP Server",
+    url:env.MCP_SERVER_URL,
+    auth:{
+      type:"bearer",
+      token:env.MCP_BEARER_TOKEN
+    }}' \
+  | curl -fsS "$BASE_URL/v1/mcp/servers" \
+      -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+      -H "Content-Type: application/json" \
+      --data-binary @- \
+  | jq -er '.id')
+```
+
+Authentication is bound to the registered MCP server.
+Subsequent discovery and execution do not require the
+application to submit the bearer token again.
+
+### Rotate an MCP credential
+
+Unlike provider keys, MCP credentials can be replaced
+in place without creating a new server registration.
+
+```python interface=python
+client.mcp.rotate_server_credential(
+    server_id=server_id,
+    bearer_token=os.environ["NEW_MCP_BEARER_TOKEN"],
 )
 ```
 
-And from there, every request includes:
-
-```http
-X-API-Key: us_8slj8dKf39x...ZmwtYeS
+```curl interface=curl
+jq -n \
+  '{type:"bearer",token:env.NEW_MCP_BEARER_TOKEN}' \
+  | curl -fsS -X PUT \
+      "$BASE_URL/v1/mcp/servers/$MCP_SERVER_ID/credential" \
+      -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+      -H "Content-Type: application/json" \
+      --data-binary @-
 ```
 
----
+See [MCP](/docs/sdk-reference-mcp).
 
-### 🛡️ Best Practices
+## Security
 
-- Store your `.env` securely and **add it to `.gitignore`**
-- Use `.env.dev` or `.env.docker` for different contexts
-- Rotate and revoke keys as needed via `/users/{user_id}/apikeys`
+- Keep credentials out of source control and application logs.
+- Use separate API keys for separate applications and environments.
+- Use HTTPS when transmitting credentials.
+- Keep provider secrets and MCP tokens server-side.
+- Revoke compromised or unused credentials.
+- Never expose administrative credentials to frontend applications.
 
-```python
-client.keys.create_api_key(user_id, key_name="ci-script")
-```
+## Reference
 
---- 
-
-By using the `Entity` interface, you get:
-- Clean API key injection
-- Shared auth across all services
-- Centralized lifecycle control (e.g., `.close()` support coming soon)
-
-```python
-client.assistants.create_assistant(name="RoboDoc", model="llama3")
-```
-
-
-
----
-## 🧪 Authenticating Requests
-
-To call any protected endpoint, include the **full API key** in the request header:
-
-```
-X-API-Key: ad_LV39xQKw3kYxrMNqETaFek3YzTZG5rPE
-```
-
-The backend:
-1. Extracts the prefix (`ad_LV39xQKw`)
-2. Locates a matching record in the database
-3. Validates:
-   - Signature (HMAC hash)
-   - `is_active == True`
-   - `expires_at` not passed
-
-If any condition fails → `401 Unauthorized`.
-
----
-
-## 👨‍👩‍👧‍👦 User Access Control
-
-Each API key is bound to a specific user (`user_id`), and access to key management is **self-restricted**:
-
-- ✅ Users can only view, create, or revoke **their own** keys.
-- ❌ Users cannot access or manage keys of others.
-
-Validation is enforced by this rule:
-
-```
-if authenticated_key.user_id != requested_user_id:
-    raise HTTPException(status_code=403, detail="Not authorized.")
-```
-
----
-
-## 📮 API Key Management Endpoints
-
-All key-related endpoints live under:
-
-```
-/users/{user_id}/apikeys
-```
-
-### ➕ Create a Key
-
-```
-POST /users/{user_id}/apikeys
-```
-
-**Input:**
-
-```json
-{
-  "key_name": "CLI Usage",
-  "expires_in_days": 30
-}
-```
-
-**Output:**
-
-```json
-{
-  "plain_key": "us_8slj8dKf39x...ZmwtYeS",
-  "details": {
-    "prefix": "us_8slj8dKf",
-    "key_name": "CLI Usage",
-    "created_at": "...",
-    ...
-  }
-}
-```
-
-> ⚠️ The `plain_key` is **only shown once** — store it securely.
-
----
-
-### 📃 List Keys
-
-```
-GET /users/{user_id}/apikeys
-```
-
-- Optional: `?include_inactive=true`
-- Returns metadata for all user keys (never shows the full key again)
-
----
-
-### 🔍 View a Specific Key (by Prefix)
-
-```
-GET /users/{user_id}/apikeys/{key_prefix}
-```
-
-- Shows detailed metadata for the matching key.
-- Returns `404` if not found or doesn't belong to user.
-
----
-
-### ❌ Revoke a Key
-
-```
-DELETE /users/{user_id}/apikeys/{key_prefix}
-```
-
-- Sets `is_active=False`
-- Does **not** delete the record
-- Key becomes unusable for future requests
-
----
-
-## ✅ Validation Steps (Server-side)
-
-When a request arrives:
-
-1. `X-API-Key` is extracted
-2. Prefix (first 8 chars) is used for DB lookup
-3. Key is verified:
-   - Matches stored hash (HMAC + salt)
-   - Is still active (`is_active == True`)
-   - Not expired (`expires_at > now`, if present)
-
-If any step fails, the request is rejected with:
-
-```
-401 Unauthorized  
-WWW-Authenticate: APIKey
-```
-
----
-
-## 🧠 Summary
-
-| Role     | Permissions                          |
-|----------|--------------------------------------|
-| Admin    | Can create users and keys            |
-| User     | Can manage only their own API keys   |
-
-| Endpoint | Method | Purpose              |
-|----------|--------|----------------------|
-| `/users/{user_id}/apikeys` | POST   | Create a new API key     |
-| `/users/{user_id}/apikeys` | GET    | List all API keys        |
-| `/users/{user_id}/apikeys/{prefix}` | GET | Inspect a key (meta only) |
-| `/users/{user_id}/apikeys/{prefix}` | DELETE | Revoke the key             |
-
-Use this pattern to protect any public-facing or internal microservice endpoints under Entities V1.
+- [API Keys](/docs/sdk-reference-api-keys)
+- [Provider Keys](/docs/sdk-reference-provider-keys)
+- [MCP](/docs/sdk-reference-mcp)
+- [HTTP API Reference](/docs/api-reference)

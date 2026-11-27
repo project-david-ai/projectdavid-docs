@@ -1,5 +1,5 @@
 ---
-title: Vision (Multimodal Messages)
+title: Vision
 category: sdk
 slug: sdk-vision
 nav_order: 5
@@ -7,229 +7,228 @@ nav_order: 5
 
 # Vision
 
-## Overview
+Send images alongside text to a vision-capable model. Images are stored as
+files; messages carry the prompt and references to those files.
 
-The platform supports multimodal messages — messages that contain both text and images.
-Images are automatically downloaded, stored server-side, and hydrated into the correct
-format at inference time. This means your application sends a standard message payload
-and the platform handles everything else: image fetching, upload, storage, and delivery
-to the model.
+## Configure
 
-Supported image sources:
+Use an [Assistant](/docs/sdk-assistants) configured with a vision-capable
+model and a [Thread](/docs/sdk-threads) owned by your account. Complete
+[Authentication](/docs/api_keys) and set `PROJECTDAVID_ASSISTANT_ID` and
+`PROJECTDAVID_THREAD_ID` to their IDs. The cURL examples use Bash and `jq`.
+Run each example in the same session.
 
-- **Remote URLs** — any publicly accessible image URL (HTTP/S, including CDN-redirected URLs)
-- **Base64 data URIs** — inline images encoded as `data:image/<type>;base64,...`
-- **Pre-uploaded file IDs** — files previously uploaded via the Files API
+```python interface=python
+import os
 
-Supported formats: JPEG, PNG, WebP, GIF.
-
----
-
-## Sending Images via URL
-
-Pass a content array instead of a plain string. Each block has a `type` field — `"text"`
-for the prompt and `"image_url"` for each image.
-
-```python
+from dotenv import load_dotenv
 from projectdavid import Entity
 
-client = Entity()
+load_dotenv()
 
-thread = client.threads.create_thread()
+client = Entity(
+    base_url=os.getenv("PROJECTDAVID_BASE_URL", "https://api.projectdavid.co.uk"),
+    api_key=os.environ["PROJECTDAVID_API_KEY"],
+)
+assistant_id = os.environ["PROJECTDAVID_ASSISTANT_ID"]
+thread_id = os.environ["PROJECTDAVID_THREAD_ID"]
+```
 
+```bash interface=curl
+BASE_URL="${PROJECTDAVID_BASE_URL:-https://api.projectdavid.co.uk}"
+ASSISTANT_ID="${PROJECTDAVID_ASSISTANT_ID:?Set the assistant ID}"
+THREAD_ID="${PROJECTDAVID_THREAD_ID:?Set the thread ID}"
+set -euo pipefail
+```
+
+## Upload an image
+
+Place an image named `diagram.png` in your working directory. Upload it
+with `purpose="vision"` and retain its file ID. If you already have an
+uploaded image, use its existing ID instead.
+
+```python interface=python
+image = client.files.upload_file(
+    file_path="diagram.png",
+    purpose="vision",
+)
+file_id = image.id
+```
+
+```curl interface=curl
+FILE_ID=$(curl -fsS "$BASE_URL/v1/uploads" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+  -F 'purpose=vision' \
+  -F 'file=@diagram.png' \
+  | jq -er '.id')
+```
+
+## Create a vision message
+
+Reference the uploaded image in the message. Both interfaces produce
+stored text and an image attachment of type `image` with a `file_id`.
+
+```python interface=python
 message = client.messages.create_message(
-    thread_id=thread.id,
-    assistant_id="your_assistant_id",
+    thread_id=thread_id,
+    assistant_id=assistant_id,
     role="user",
     content=[
-        {
-            "type": "text",
-            "text": "What are the differences between these two images?"
-        },
-        {
-            "type": "image_url",
-            "image_url": {
-                "url": "https://picsum.photos/id/1015/800/600"
-            }
-        },
-        {
-            "type": "image_url",
-            "image_url": {
-                "url": "https://picsum.photos/id/1016/800/600"
-            }
-        }
-    ]
+        {"type": "text", "text": "Explain this diagram."},
+        {"type": "image_file", "image_file": {"file_id": file_id}},
+    ],
 )
-
-print(message.content)      # Plain text prompt as stored
-print(message.attachments)  # [{"type": "image", "file_id": "file_xxx"}, ...]
+message_id = message.id
 ```
 
-The SDK automatically downloads each image, uploads it to the file store, and records
-the resulting `file_id` in the message's `attachments` field. The raw bytes are never
-stored in the message record itself.
+```curl interface=curl
+MESSAGE_ID=$(jq -n \
+  --arg thread_id "$THREAD_ID" \
+  --arg assistant_id "$ASSISTANT_ID" \
+  --arg file_id "$FILE_ID" \
+  '{thread_id:$thread_id,assistant_id:$assistant_id,
+    role:"user",content:"Explain this diagram.",
+    attachments:[{type:"image",file_id:$file_id}]}' \
+  | curl -fsS "$BASE_URL/v1/messages" \
+      -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+      -H 'Content-Type: application/json' \
+      --data-binary @- \
+  | jq -er '.id')
+```
 
----
+Create a Run and start inference using this message ID, following the
+[Quick Start](/docs/sdk-quick-start). The model selected for the Run must
+support image input. Creating the message alone does not execute it.
 
-## Sending a Local Image (Base64)
+## Remote images and data URIs
 
-Read a local file and encode it as a base64 data URI. Resize the image before encoding
-to keep token usage predictable — a maximum of 512px on the longest side is a reliable
-starting point for most models.
+The Python SDK also accepts `image_url` content blocks. It downloads HTTP(S)
+images (following redirects) or decodes base64 image data URIs, uploads the
+result, then creates the message. These are SDK conveniences, not the raw
+HTTP message attachment format.
 
-```python
-import base64
-import io
-from PIL import Image
-from projectdavid import Entity
+Set `IMAGE_URL` to a trusted, accessible PNG image URL before running this
+example. The cURL equivalent explicitly downloads and uploads the image.
 
-client = Entity()
-
-
-def encode_image(path: str, max_size: int = 512) -> str:
-    img = Image.open(path).convert("RGB")
-    img.thumbnail((max_size, max_size), Image.LANCZOS)
-    buf = io.BytesIO()
-    img.save(buf, format="JPEG", quality=85)
-    return f"data:image/jpeg;base64,{base64.b64encode(buf.getvalue()).decode()}"
-
-
-thread = client.threads.create_thread()
-
+```python interface=python
 message = client.messages.create_message(
-    thread_id=thread.id,
-    assistant_id="your_assistant_id",
+    thread_id=thread_id,
+    assistant_id=assistant_id,
     role="user",
     content=[
-        {
-            "type": "text",
-            "text": "Summarise the key trends in this chart."
-        },
-        {
-            "type": "image_url",
-            "image_url": {
-                "url": encode_image("chart.png")
-            }
-        }
-    ]
+        {"type": "text", "text": "Describe this image."},
+        {"type": "image_url", "image_url": {"url": os.environ["IMAGE_URL"]}},
+    ],
 )
+message_id = message.id
 ```
 
----
+```curl interface=curl
+# IMAGE_URL must identify a trusted PNG image.
+IMAGE_PATH=$(mktemp)
+trap 'rm -f "$IMAGE_PATH"' EXIT
+curl -fsSL --proto '=https' --proto-redir '=https' \
+  "${IMAGE_URL:?Set a trusted HTTPS image URL}" -o "$IMAGE_PATH"
 
-## Sending a Pre-Uploaded File
+FILE_ID=$(curl -fsS "$BASE_URL/v1/uploads" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+  -F 'purpose=vision' \
+  -F "file=@$IMAGE_PATH;filename=image.png;type=image/png" \
+  | jq -er '.id')
+rm -f "$IMAGE_PATH"
+trap - EXIT
 
-If you have already uploaded an image via the Files API and have its `file_id`, you can
-attach it directly without re-uploading.
+MESSAGE_ID=$(jq -n \
+  --arg thread_id "$THREAD_ID" \
+  --arg assistant_id "$ASSISTANT_ID" \
+  --arg file_id "$FILE_ID" \
+  '{thread_id:$thread_id,assistant_id:$assistant_id,
+    role:"user",content:"Describe this image.",
+    attachments:[{type:"image",file_id:$file_id}]}' \
+  | curl -fsS "$BASE_URL/v1/messages" \
+      -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+      -H 'Content-Type: application/json' \
+      --data-binary @- \
+  | jq -er '.id')
+```
 
-```python
+For inline PNG data, the SDK accepts the same `image_url` block with
+`url` set to `data:image/png;base64,...`. HTTP clients can decode the data
+locally and use the upload workflow above. Prefer direct file uploads for
+local images rather than encoding them unnecessarily.
+
+Only fetch images from trusted sources. Do not pass arbitrary user-supplied
+URLs to the SDK's image downloader without applying your application's
+network-access policy.
+
+## Multiple images
+
+For ordered comparisons, upload images separately and reference their file
+IDs in the intended order. Set `PROJECTDAVID_FIRST_IMAGE_ID` and
+`PROJECTDAVID_SECOND_IMAGE_ID` to two image IDs owned by your account.
+
+```python interface=python
+first_id = os.environ["PROJECTDAVID_FIRST_IMAGE_ID"]
+second_id = os.environ["PROJECTDAVID_SECOND_IMAGE_ID"]
+
 message = client.messages.create_message(
-    thread_id=thread.id,
-    assistant_id="your_assistant_id",
+    thread_id=thread_id,
+    assistant_id=assistant_id,
     role="user",
     content=[
-        {
-            "type": "text",
-            "text": "Describe what you see in this image."
-        },
-        {
-            "type": "image_file",
-            "image_file": {
-                "file_id": "file_abc123"
-            }
-        }
-    ]
+        {"type": "text", "text": "Compare the first image with the second."},
+        {"type": "image_file", "image_file": {"file_id": first_id}},
+        {"type": "image_file", "image_file": {"file_id": second_id}},
+    ],
 )
+message_id = message.id
 ```
 
----
-
-## Mixing Text, URLs, and Local Images
-
-All three source types can be combined in a single message.
-
-```python
-message = client.messages.create_message(
-    thread_id=thread.id,
-    assistant_id="your_assistant_id",
-    role="user",
-    content=[
-        {
-            "type": "text",
-            "text": "Compare the remote photo with my local chart."
-        },
-        {
-            "type": "image_url",
-            "image_url": {
-                "url": "https://picsum.photos/id/1015/800/600"
-            }
-        },
-        {
-            "type": "image_url",
-            "image_url": {
-                "url": encode_image("chart.png")
-            }
-        }
-    ]
-)
+```curl interface=curl
+MESSAGE_ID=$(jq -n \
+  --arg thread_id "$THREAD_ID" \
+  --arg assistant_id "$ASSISTANT_ID" \
+  --arg first_id "${PROJECTDAVID_FIRST_IMAGE_ID:?Set the first image ID}" \
+  --arg second_id "${PROJECTDAVID_SECOND_IMAGE_ID:?Set the second image ID}" \
+  '{thread_id:$thread_id,assistant_id:$assistant_id,
+    role:"user",content:"Compare the first image with the second.",
+    attachments:[{type:"image",file_id:$first_id},
+                 {type:"image",file_id:$second_id}]}' \
+  | curl -fsS "$BASE_URL/v1/messages" \
+      -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+      -H 'Content-Type: application/json' \
+      --data-binary @- \
+  | jq -er '.id')
 ```
 
----
+The SDK batches `image_url` uploads concurrently, so their attachment order
+is not guaranteed. Text blocks are combined into a single prompt, not
+preserved as interleaved text and images.
 
-## Inspecting the Hydrated Payload
+## Inspect attachments
 
-`get_formatted_messages()` returns the thread history in the format the model receives —
-image `file_id` references are resolved to base64 content arrays at call time.
-
-```python
-formatted = client.messages.get_formatted_messages(thread.id)
-
-for msg in formatted:
-    content = msg.get("content")
-    if isinstance(content, list):
-        # Multimodal message — content is a Qwen-format array
-        text_blocks  = [b for b in content if b["type"] == "text"]
-        image_blocks = [b for b in content if b["type"] == "image"]
-        print(f"Text:   {text_blocks[0]['text']}")
-        print(f"Images: {len(image_blocks)} resolved")
-    else:
-        # Plain text message
-        print(f"Text: {content}")
+```python interface=python
+message = client.messages.retrieve_message(message_id=message_id)
+print(message.content)
+print(message.attachments)
 ```
 
-Example output:
-
+```curl interface=curl
+curl -fsS "$BASE_URL/v1/messages/$MESSAGE_ID" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+  | jq '{content, attachments}'
 ```
-Text:   What are the differences between these two images?
-Images: 2 resolved
-```
 
----
+Attachment references do not guarantee that image bytes remain available at
+inference time. Keep the referenced files available to the owning account.
+Core resolves image references when preparing multimodal context; unavailable
+images may be skipped, leaving a text-only message. Image size, format and
+context limits also depend on the selected model and provider.
 
-## Notes
+## Reference
 
-**Image size** — resize images to a maximum of 512px on the longest side before encoding.
-Large images generate significantly more tokens and may exceed the model's context limit,
-causing the request to fail. The `encode_image` helper above handles this automatically.
-
-**Image expiry** — uploaded images have a TTL. Check `message.attachments` to verify
-file IDs are present before triggering a run if timing is a concern.
-
-**CDN redirects** — URLs that return a `302` redirect (such as Picsum or many CDN
-hosts) are followed automatically. No special handling is required.
-
-**Strict hosts** — URLs from hosts that block non-browser requests (such as Wikipedia)
-are fetched with a browser-compatible `User-Agent` header automatically.
-
-**Plain text messages are unaffected** — passing a plain string to `content` works
-exactly as before. The multimodal path is only activated when `content` is a list.
-
-```python
-# This still works exactly as before — no changes required
-message = client.messages.create_message(
-    thread_id=thread.id,
-    assistant_id="your_assistant_id",
-    role="user",
-    content="Tell me about current trends in AI"
-)
-```
+- [Messages](/docs/sdk-messages)
+- [Files](/docs/sdk-files)
+- [Runs](/docs/sdk-runs)
+- [Messages reference](/docs/sdk-reference-messages)
+- [HTTP API reference](/docs/api-reference)

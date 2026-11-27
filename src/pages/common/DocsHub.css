@@ -119,3 +119,168 @@
     transition: none;
   }
 }
+
+/* Model families */
+
+.docs-hub__models {
+  margin-top: 48px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+}
+
+.docs-hub__models > h2 {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.3px;
+}
+
+
+.docs-hub__model-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.docs-model-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 100px;
+  padding: 16px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--text);
+  text-decoration: none;
+  transition: opacity 150ms ease;
+}
+
+.docs-model-card:hover {
+  opacity: 0.72;
+}
+
+.docs-model-card:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.docs-model-card__logo {
+  width: 88px;
+  max-width: 100%;
+  height: 40px;
+  object-fit: contain;
+  transform: scale(var(--logo-scale, 0.85));
+}
+
+/* Optical corrections for the supplied SVG artwork. */
+.docs-model-card__logo[src$="/deepseek.svg"] {
+  --logo-scale: 1;
+}
+
+.docs-model-card__logo[src$="/gpt-oss.svg"] {
+  --logo-scale: 1.65;
+}
+
+.docs-model-card__logo[src$="/llama.svg"] {
+  --logo-scale: 1.2;
+}
+
+.docs-model-card__logo[src$="/nemotron.svg"] {
+  --logo-scale: 1.15;
+}
+
+.docs-model-card__logo[src$="/bonsai.svg"] {
+  --logo-scale: 0.7;
+}
+
+.docs-model-card__logo[hidden] {
+  display: none;
+}
+
+.docs-model-card__name {
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.docs-model-card__arrow {
+  display: none;
+}
+
+.docs-hub__model-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+@media (max-width: 900px) {
+  .docs-hub__model-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .docs-model-card {
+    transition: none;
+  }
+}
+
+/* Contributor entry — separate from the primary documentation and model grid. */
+.docs-hub__contributing {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.docs-contributing-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  transition: background 150ms ease;
+}
+
+.docs-contributing-card:hover {
+  background: var(--surface-subtle);
+}
+
+.docs-contributing-card:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.docs-contributing-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.docs-contributing-card__body > h2 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.2px;
+}
+
+.docs-contributing-card__body > p {
+  margin: 0;
+}
+
+.docs-contributing-card__arrow {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .docs-contributing-card {
+    transition: none;
+  }
+}

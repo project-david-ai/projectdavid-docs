@@ -7,222 +7,73 @@ nav_order: 4
 
 # Contributing
 
-`projectdavid-platform` is the deployment orchestration layer for Project David. Contributions are welcome — packaging improvements, new compose overlays, CLI enhancements, and documentation corrections are all good candidates.
+`projectdavid-platform` provides the `pdavid` CLI, deployment orchestration, bundled Docker Compose configuration and package distribution. Contributions should improve the installation, operation or upgrade of Project David on self-hosted infrastructure.
 
----
+Changes to inference, resource APIs, tools or agent execution belong in [Project David Core](https://github.com/project-david-ai/projectdavid-core).
 
-## Where the Code Lives
+## Development setup
 
-| Repository | What it contains |
-|---|---|
-| [projectdavid-platform](https://github.com/project-david-ai/projectdavid-platform) | The `pdavid` CLI, orchestrator, bundled compose files, and packaging |
-| [projectdavid-core](https://github.com/project-david-ai/projectdavid-core) | The runtime engine — API, sandbox, training pipeline, Docker images |
-
-If your contribution touches the runtime behaviour of the stack — inference, orchestration, tools, training — it belongs in **projectdavid-core**. If it touches deployment, packaging, CLI flags, or compose configuration — it belongs here.
-
----
-
-## Development Setup
-
-**1. Fork and clone the repository.**
+Fork [projectdavid-platform](https://github.com/project-david-ai/projectdavid-platform) on GitHub. Replace `YOUR_GITHUB_USERNAME` with your GitHub username:
 
 ```bash
-git clone https://github.com/project-david-ai/projectdavid-platform.git
+git clone https://github.com/YOUR_GITHUB_USERNAME/projectdavid-platform.git
 cd projectdavid-platform
+git remote add upstream https://github.com/project-david-ai/projectdavid-platform.git
+git fetch upstream
+git switch -c fix/deployment-check upstream/dev
 ```
 
-**2. Create and activate a virtual environment.**
+Create an isolated Python environment:
 
 ```bash
 python -m venv .venv
-
-# Linux / macOS
 source .venv/bin/activate
-
-# Windows
-.venv\Scripts\activate
 ```
 
-**3. Install the package in editable mode.**
+On Windows PowerShell, activate it with:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+Install the package in editable mode:
 
 ```bash
-pip install -e .
+python -m pip install -e .
+pdavid --help
 ```
 
-**4. Install development dependencies.**
+Use the development dependencies and checks declared in the repository for the branch you are working on. For deployment testing, you also need Docker with Compose and a valid Platform licence.
+
+## Validate changes
+
+Use a dedicated test runtime directory, separate from any existing deployment. Do not test destructive operations against production data.
+
+Changes to generated configuration must account for existing deployments as well as fresh installations. Preserve credentials and instance identity; do not require operators to remove persistent volumes to apply an update. Test configuration reconciliation and failure paths where relevant.
+
+Run the repository's tests and configured pre-commit checks before opening a pull request. Do not bypass failing checks or commit generated `.env` files, credentials or runtime data.
+
+## Submit a pull request
+
+Use Conventional Commits and keep each change focused. For example, after staging your intended changes:
 
 ```bash
-pip install "black==24.1.1" "isort==5.13.2" "bandit" "mypy" "pytest" "pytest-cov"
+git commit -m "fix: improve deployment preflight checks"
+git push -u origin fix/deployment-check
 ```
 
-**5. Install pre-commit hooks.**
+Open a pull request from your fork to `dev` in the upstream repository. Describe the problem, the change, and the checks you ran. Include relevant migration or compatibility implications. Redact credentials from logs and screenshots.
 
-```bash
-pip install pre-commit
-pre-commit install
-```
+Keep release management separate from feature work. Do not submit directly to `main` or manually edit the generated changelog.
 
-The following hooks run automatically on every commit:
+## Licence
 
-| Hook | What it checks |
-|---|---|
-| `trim-trailing-whitespace` | No trailing whitespace |
-| `end-of-file-fixer` | Files end with a newline |
-| `check-yaml` | Valid YAML syntax |
-| `check-added-large-files` | No large files accidentally committed |
-| `black` | Code formatted to 88-char line length |
-| `isort` | Imports sorted and grouped correctly |
-| `bandit` | No security issues in new code |
+Contributions to `projectdavid-platform` are subject to the repository's licensing terms. See the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/). Commercial use requires a separate licence; contact [licensing@projectdavid.co.uk](mailto:licensing@projectdavid.co.uk).
 
----
+## Reference
 
-## Branch Convention
-
-```
-feat/<description> → dev → main
-```
-
-| Branch | Purpose |
-|---|---|
-| `main` | Production — protected, semantic-release manages versions and Docker Hub publishes |
-| `dev` | Integration — all feature branches merge here first |
-| `feat/<description>` | Your work — branch from `dev`, merge back to `dev` |
-
-```bash
-git checkout dev
-git pull origin dev
-git checkout -b feat/your-description
-```
-
-**Never commit directly to `main` or `dev`.**
-
----
-
-## Commit Message Convention
-
-Project David uses [Conventional Commits](https://www.conventionalcommits.org/). Semantic-release reads commit messages to determine version bumps and Docker image tags automatically.
-
-| Prefix | Version bump | When to use |
-|---|---|---|
-| `feat:` | Minor (`1.x.0`) | New CLI flag, new compose overlay, new capability |
-| `fix:` | Patch (`1.0.x`) | Bug fix |
-| `chore:` | No bump | Tooling, config, dependencies |
-| `docs:` | No bump | Documentation only |
-| `style:` | No bump | Formatting, no logic change |
-| `refactor:` | No bump | Code restructure, no behaviour change |
-| `test:` | No bump | Adding or fixing tests |
-| `BREAKING CHANGE:` | Major (`x.0.0`) | Breaking CLI change — add in commit footer |
-
-**Examples:**
-
-```bash
-git commit -m "feat: add --detach flag to pdavid logs"
-git commit -m "fix: resolve port conflict check on Windows"
-git commit -m "chore: upgrade docker-compose schema to v3.9"
-git commit -m "docs: add scale-out example to platform overview"
-```
-
-**Never edit `CHANGELOG.md` manually.**
-
----
-
-## CI Pipeline
-
-The platform CI runs on every push to `main` and every pull request:
-
-| Job | What it does |
-|---|---|
-| Lint Dockerfile | hadolint against all Dockerfiles |
-| Docker Compose sanity check | `docker compose -f docker-compose.prod.yml build` |
-| semantic-release | Version bump, changelog, Docker Hub publish |
-| Build & Push | Builds and pushes `thanosprime/projectdavid-docs:latest` to Docker Hub |
-
-A merged PR to `main` that passes CI will automatically trigger a new Docker Hub image push. No manual steps required.
-
----
-
-## Adding a New Compose Overlay
-
-Platform supports additive compose overlays for opt-in services (GPU, training, etc.). To add a new overlay:
-
-**1. Create the compose file** in `projectdavid_platform/` — e.g. `docker-compose.myservice.yml`
-
-**2. Register it** in `_BUNDLED_CONFIGS` in `start_orchestration.py`:
-
-```python
-_BUNDLED_CONFIGS = [
-    ...
-    ("docker-compose.myservice.yml", "docker-compose.myservice.yml"),
-]
-```
-
-**3. Add a CLI flag** in the `main()` callback:
-
-```python
-myservice: bool = typer.Option(
-    False,
-    "--myservice",
-    help="Start the myservice overlay.",
-),
-```
-
-**4. Wire it** in `_compose_files()`:
-
-```python
-if getattr(self.args, "myservice", False):
-    files += ["-f", self.myservice_compose]
-```
-
-**5. Resolve the path** — add a resolver in `__init__`:
-
-```python
-self.myservice_compose = _resolve_compose_file("docker-compose.myservice.yml")
-```
-
----
-
-## Submitting a Pull Request
-
-**1. Push your branch.**
-
-```bash
-git push origin feat/your-description
-```
-
-**2. Open a PR against `dev`** — not `main`.
-
-Go to [github.com/project-david-ai/projectdavid-platform](https://github.com/project-david-ai/projectdavid-platform) and open a pull request from `feat/your-description` → `dev`.
-
-**3. CI must pass** — lint, compose check, and bandit all green.
-
-**4. Once merged to `dev`**, it will be included in the next release cycle when `dev` is merged to `main`, which triggers the Docker Hub publish automatically.
-
----
-
-## What We Welcome
-
-- New compose overlay definitions for additional services
-- CLI improvements — new flags, better error messages, improved preflight checks
-- Windows and macOS compatibility fixes
-- Performance improvements to the orchestrator startup sequence
-- Documentation corrections and additions
-
-## What We Ask You Not To Do
-
-- Do not modify the generated `.env` structure without discussion — operators rely on the variable layout being stable across upgrades
-- Do not add new required variables without a corresponding `configure` migration path
-- Do not bypass pre-commit hooks with `--no-verify`
-
----
-
-## License
-
-By contributing to `projectdavid-platform` you agree that your contributions will be licensed under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/). Commercial use requires a separate licence — contact [engineering@projectdavid.co.uk](mailto:engineering@projectdavid.co.uk).
-
----
-
-## Related
-
-- [Project David Core — Contributing](/docs/core-contributing) — contributing to the runtime engine
-- [Platform Overview](/docs/platform-overview) — quick start and stack modes
-- [Platform Configuration](/docs/platform-configuration) — environment variable reference
+- [Platform repository](https://github.com/project-david-ai/projectdavid-platform)
+- [Project David Core — Contributing](/docs/core-contributing)
+- [Platform Overview](/docs/platform-overview)
+- [Configuration Reference](/docs/platform-configuration)
+- [Upgrading Platform](/docs/platform-upgrading)

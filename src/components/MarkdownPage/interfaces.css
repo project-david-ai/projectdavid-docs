@@ -1,0 +1,29 @@
+.markdown-body .doc-interface-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  margin: 0 0 1rem;
+  border-radius: 999px;
+  background: #ededed;
+}
+
+.doc-interface-switch > button {
+  padding: 5px 14px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #525252;
+}
+
+.doc-interface-switch > button:hover {
+  color: #171717;
+}
+
+.doc-interface-switch > button[aria-pressed="true"] {
+  background: #ffffff;
+  border-color: #dedede;
+  color: #171717;
+}

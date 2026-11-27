@@ -1,0 +1,80 @@
+/* Reference navigation — shared by Markdown guides */
+.markdown-body .doc-reference-nav {
+  margin: 1rem 0 2rem;
+}
+
+.markdown-body .doc-reference-nav > ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+}
+
+.markdown-body .doc-reference-nav > ul > li {
+  margin: 0;
+  padding: 0;
+}
+
+.markdown-body .doc-reference-nav > ul > li + li {
+  border-top: 1px solid #e5e5e5;
+}
+
+.markdown-body .doc-reference-nav li > p {
+  margin: 0;
+  padding: 0;
+}
+
+.markdown-body .doc-reference-nav a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 0.65rem 1rem;
+  color: #111827;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition: background-color 120ms ease;
+}
+
+.markdown-body .doc-reference-nav li:first-child a {
+  border-radius: 7px 7px 0 0;
+}
+
+.markdown-body .doc-reference-nav li:last-child a {
+  border-radius: 0 0 7px 7px;
+}
+
+.markdown-body .doc-reference-nav li:only-child a {
+  border-radius: 7px;
+}
+
+.markdown-body .doc-reference-nav a::after {
+  content: '';
+  flex: 0 0 6px;
+  height: 6px;
+  border-top: 1.5px solid #737373;
+  border-right: 1.5px solid #737373;
+  transform: rotate(45deg);
+  margin-right: 2px;
+}
+
+.markdown-body .doc-reference-nav a:hover {
+  background-color: #f7f7f7;
+  text-decoration: none;
+}
+
+.markdown-body .doc-reference-nav a:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: -3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .markdown-body .doc-reference-nav a {
+    transition: none;
+  }
+}

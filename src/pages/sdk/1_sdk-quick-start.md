@@ -3,121 +3,52 @@ title: Quick Start
 category: sdk
 slug: sdk-quick-start
 nav_order: 1
-# nav_exclude: true
 ---
 
 # Quick Start
 
-The Project David SDK gives you a familiar Assistants-style interface — Assistants,
-Threads, Messages, Runs — that works with any model on any infrastructure. This
-guide gets you from zero to a streaming response in under 5 minutes.
+Create an assistant and stream your first response with Project David.
 
----
+## Install
 
+```bash interface=python
+# Requires Python 3.10 or later.
+pip install projectdavid
+```
 
-The following assumes that you can reach a running instance of [Project David Core](/docs/core-overview) or [Project David Platform](/docs/platform-overview).
+```bash interface=curl
+# Run the examples in Bash with cURL, jq and uuidgen installed.
+curl --version
+jq --version
+command -v uuidgen
+```
 
+## Configure
 
----
+Obtain a Project David API key from the [Dashboard](https://platform.projectdavid.co.uk)
+and an inference provider API key from Hyperbolic.
 
-## Event-Driven Stream
+```dotenv interface=python
+# Save as .env beside quickstart.py. Keep it out of version control.
+PROJECTDAVID_API_KEY=your_project_david_api_key
+PROVIDER_API_KEY=your_hyperbolic_api_key
+```
 
-The event-driven interface is the recommended approach for all new implementations.
-It separates reasoning from content events, provides access to Level 2 and Level 3
-agentic capabilities, and gives your application clean hooks for every stage of
-the inference lifecycle.
+```bash interface=curl
+# Set these variables in your Bash session.
+export PROJECTDAVID_API_KEY='your_project_david_api_key'
+export PROVIDER_API_KEY='your_hyperbolic_api_key'
+```
 
-```python
+The Project David API key authenticates your application.
+The provider API key authorizes model inference.
+
+## Stream a response
+
+```python interface=python
+# Save as quickstart.py and run: python quickstart.py
 import os
-from dotenv import load_dotenv
-from projectdavid import Entity
-from projectdavid.events import ContentEvent, ReasoningEvent
 
-load_dotenv()
-
-client = Entity(
-    base_url=os.getenv("BASE_URL"),
-    api_key=os.getenv("PROJECTDAVID_API_KEY"),
-)
-
-PROVIDER = "Hyperbolic"
-MODEL    = "hyperbolic/deepseek-ai/DeepSeek-V3"
-
-# 1. Create an assistant
-assistant = client.assistants.create_assistant(
-    name="my_assistant",
-    instructions="You are a helpful AI assistant.",
-)
-
-# 2. Open a thread
-thread = client.threads.create_thread()
-
-# 3. Add a message
-message = client.messages.create_message(
-    thread_id=thread.id,
-    role="user",
-    content="Explain the difference between TCP and UDP in one paragraph.",
-    assistant_id=assistant.id,
-)
-
-# 4. Create a run
-run = client.runs.create_run(
-    assistant_id=assistant.id,
-    thread_id=thread.id,
-)
-
-# 5. Stream the response
-stream = client.synchronous_inference_stream
-stream.setup(
-    user_id=os.getenv("ENTITIES_USER_ID"),
-    thread_id=thread.id,
-    assistant_id=assistant.id,
-    message_id=message.id,
-    run_id=run.id,
-    api_key=os.getenv("PROVIDER_API_KEY"),
-)
-
-current_mode = None
-
-for event in stream.stream_events(model=MODEL):
-
-    if isinstance(event, ReasoningEvent):
-        if current_mode != "reasoning":
-            print("\n[Reasoning]: ", end="")
-            current_mode = "reasoning"
-        print(event.content, end="", flush=True)
-
-    elif isinstance(event, ContentEvent):
-        if current_mode != "content":
-            print("\n\n[Response]: ", end="")
-            current_mode = "content"
-        print(event.content, end="", flush=True)
-```
-
-For a full list of supported providers and model IDs, see the
-[Model Compatibility Report](/docs/providers-Model-Compatibility-Report).
-
----
-
-## Local Inference with Ollama
-
-No API key required. Run any model on your own hardware — fully air-gapped,
-no data leaves your infrastructure.
-
-Start Ollama with your platform:
-
-```bash
-pdavid --mode up --ollama
-```
-
-Then pull a model:
-
-```bash
-docker exec -it ollama ollama pull qwen2.5:7b
-```
-
-```python
-import os
 from dotenv import load_dotenv
 from projectdavid import Entity
 from projectdavid.events import ContentEvent
@@ -125,68 +56,145 @@ from projectdavid.events import ContentEvent
 load_dotenv()
 
 client = Entity(
-    base_url=os.getenv("BASE_URL"),
-    api_key=os.getenv("PROJECTDAVID_API_KEY"),
+    base_url="https://api.projectdavid.co.uk",
+    api_key=os.environ["PROJECTDAVID_API_KEY"],
 )
 
+provider_key = client.provider_keys.create(
+    provider="hyperbolic",
+    api_key=os.environ["PROVIDER_API_KEY"],
+    name="Quickstart",
+)
+
+# 1. Create an assistant.
 assistant = client.assistants.create_assistant(
-    name="local_assistant",
-    instructions="You are a helpful AI assistant running on local hardware.",
+    name="Quickstart Assistant",
+    model="hyperbolic/deepseek-v4-flash-0731",
+    instructions="You are a helpful AI assistant.",
 )
 
+# 2. Create a thread.
 thread = client.threads.create_thread()
 
+# 3. Add a message.
 message = client.messages.create_message(
     thread_id=thread.id,
-    role="user",
-    content="What is the capital of France?",
     assistant_id=assistant.id,
+    role="user",
+    content="Explain the difference between TCP and UDP.",
 )
 
+# 4. Create a run.
 run = client.runs.create_run(
     assistant_id=assistant.id,
     thread_id=thread.id,
 )
 
+# 5. Stream the response.
 stream = client.synchronous_inference_stream
 stream.setup(
-    user_id=os.getenv("ENTITIES_USER_ID"),
     thread_id=thread.id,
     assistant_id=assistant.id,
     message_id=message.id,
     run_id=run.id,
-    api_key=None,  # No API key needed for local inference
+    provider_key_id=provider_key.id,
 )
 
-for event in stream.stream_events(model="qwen2.5:7b"):
+for event in stream.stream_events(model=run.model):
     if isinstance(event, ContentEvent):
         print(event.content, end="", flush=True)
+
+print()
+
+completed_run = client.runs.retrieve_run(run.id)
+print(f"Run status: {completed_run.status}")
 ```
 
----
+```curl interface=curl
+# Save as quickstart.sh and run: bash quickstart.sh
+set -euo pipefail
+BASE_URL="https://api.projectdavid.co.uk"
+MODEL="hyperbolic/deepseek-v4-flash-0731"
 
-## What Just Happened
+post() {
+  curl -fsS "$BASE_URL$1" \
+    -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+    -H 'Content-Type: application/json' \
+    --data-binary @-
+}
 
-Every interaction follows the same five-step pattern:
+# Register the provider credential.
+PROVIDER_KEY_ID=$(jq -n \
+  '{provider:"hyperbolic",api_key:env.PROVIDER_API_KEY,name:"Quickstart"}' \
+  | post /v1/provider-keys | jq -er '.id')
 
-| Step | What it does |
+# 1. Create an assistant.
+ASSISTANT_ID=$(jq -n --arg model "$MODEL" \
+  '{name:"Quickstart Assistant",model:$model,instructions:"You are a helpful AI assistant."}' \
+  | post /v1/assistants | jq -er '.id')
+
+# 2. Create a thread.
+THREAD_ID=$(printf '{}' | post /v1/threads | jq -er '.id')
+
+# 3. Add a message.
+MESSAGE_ID=$(jq -n --arg thread "$THREAD_ID" --arg assistant "$ASSISTANT_ID" \
+  '{thread_id:$thread,assistant_id:$assistant,role:"user",content:"Explain the difference between TCP and UDP."}' \
+  | post /v1/messages | jq -er '.id')
+
+# 4. Create a run. The HTTP API requires an ID and timestamps.
+NOW=$(date +%s)
+RUN=$(jq -n \
+  --arg id "run_$(uuidgen | tr -d '-')" \
+  --arg thread "$THREAD_ID" --arg assistant "$ASSISTANT_ID" \
+  --argjson now "$NOW" --argjson expires "$((NOW + 3600))" \
+  '{id:$id,thread_id:$thread,assistant_id:$assistant,instructions:"",created_at:$now,expires_at:$expires,temperature:1,top_p:1}' \
+  | post /v1/runs)
+RUN_ID=$(jq -er '.id' <<< "$RUN")
+MODEL=$(jq -er '.model' <<< "$RUN")
+
+# 5. Stream the raw server-sent events (SSE).
+jq -n --arg model "$MODEL" --arg thread "$THREAD_ID" \
+  --arg message "$MESSAGE_ID" --arg run "$RUN_ID" \
+  --arg assistant "$ASSISTANT_ID" --arg key "$PROVIDER_KEY_ID" \
+  '{model:$model,thread_id:$thread,message_id:$message,run_id:$run,assistant_id:$assistant,provider_key_id:$key,stream:true}' \
+  | curl -fsSN "$BASE_URL/v1/completions" \
+      -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+      -H 'Content-Type: application/json' \
+      --data-binary @-
+
+curl -fsS "$BASE_URL/v1/runs/$RUN_ID" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" | jq -r '.status'
+```
+
+The SDK exposes typed events and prints the assistant's content. The cURL example
+prints the raw SSE stream. Both use the same Core resources and registered
+provider credential. The final Run status should be `completed`.
+
+## The lifecycle
+
+| Resource | Responsibility |
 |---|---|
-| `create_assistant` | Defines the AI's identity and instructions |
-| `create_thread` | Opens a conversation context |
-| `create_message` | Adds a user message to the thread |
-| `create_run` | Triggers the assistant to process the thread |
-| `stream_events` | Streams the response token by token |
+| Assistant | Model, instructions and capabilities |
+| Thread | Persistent conversation context |
+| Message | Conversation input or output |
+| Run | An individual execution |
+| Stream | Real-time execution events |
 
-This pattern is consistent across every provider, every model, and every capability
-level — from a simple chat response to a multi-agent deep research run.
+Reuse the Assistant and Thread when continuing a conversation. Create a new
+Message and Run for each new interaction.
 
----
+## Registered provider keys
 
-## Next Steps
+Store the registered provider key ID for subsequent requests. You do not need to
+submit the raw provider API key for every inference request.
 
-- [Assistants](/docs/sdk-assistants) — create, update, and manage assistants
-- [Threads & Messages](/docs/sdk-threads) — conversation management
-- [Runs](/docs/sdk-runs) — run lifecycle and status
-- [Tools](/docs/sdk-tools) — code interpreter, web search, file search
-- [Providers](/docs/providers) — full provider and model reference
-- [Stream Contract](/docs/sdk-stream-contract) — complete event type reference
+See [Provider Keys](/docs/sdk-reference-provider-keys) for credential management.
+
+## Reference
+
+- [Python SDK Reference](/docs/sdk-reference-client)
+- [HTTP API Reference](/docs/api-reference)
+
+## Self-hosting
+
+To run Project David on your own infrastructure, see the [Platform overview](/docs/platform-overview).

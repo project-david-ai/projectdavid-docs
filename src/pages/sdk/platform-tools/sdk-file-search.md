@@ -5,91 +5,68 @@ slug: sdk-file-search
 nav_exclude: true
 ---
 
-
-
 # File Search
 
-## Overview
+Let an assistant retrieve relevant document passages from a vector store during inference.
 
+## Prepare a vector store
 
+Follow [Vector Stores](/docs/sdk-Vector-Store) to create a store and index documents. Use compatible embedding models and dimensions for ingestion and retrieval. Ordinary file uploads alone do not populate a vector store.
 
-File search sits on top of the vector‑store lifecycle, but with a few important wrinkles. A vector store is a persistent, embedding‑backed database: every ingested user file is chunked, embedded into a high‑dimensional space, and indexed for approximate‑nearest‑neighbour (ANN) retrieval. File search builds on that foundation, accepting a natural‑language query, converting it into the same embedding space, then returning the *k* most similar chunks—optionally post‑filtered by any Qdrant payload expression (e.g. `{"page": {"$lte": 5}}`). In short, the lifecycle is:
+## Attach a store to an assistant
 
-* **Ingest** → chunk, embed, upsert (creates a vector‑store record + file metadata)  
-* **Search** → embed the query, run ANN, score + rank  
-* **Filter / Facet** → apply payload filters (`page`, `author`, custom tags)  
-* **Synthesis (optional)** → feed the top‑N passages into an LLM for abstractive answers  
+Complete [Authentication](/docs/api_keys) first. Set `VECTOR_STORE_ID` in your environment to the ID of a store you have indexed and can access.
 
-Because everything is vectorised, file search supports highly flexible, multi‑dimensional semantic retrieval, far beyond simple keyword matching—yet still lets you constrain results with deterministic filters when precision matters.
-
-
-```python
-
+```python interface=python
 import os
-from pathlib import Path
+
 from dotenv import load_dotenv
 from projectdavid import Entity
-from projectdavid_common import UtilsInterface   # only for pretty logging
 
-
-# --------------------------------------------------------------------- #
-# environment & client
-# --------------------------------------------------------------------- #
-load_dotenv()                                        # reads .env in cwd
+load_dotenv()
 
 client = Entity(
-    base_url=os.getenv("BASE_URL", "http://localhost:9000"),
-    api_key=os.getenv("PROJECTDAVID_API_KEY"),
-)
-# --------------------------------------------------------------------- #
-# 1.  Create a vector store
-# --------------------------------------------------------------------- #
-store = client.vectors.create_vector_store(
-    name="cook‑book‑demo",
-
-# --------------------------------------------------------------------- #
-# 2.  Quick diagnostic (optional)
-# --------------------------------------------------------------------- #
-# sanity = client.vectors.retrieve_vector_store(store.id)
-# log.info("Files so far: %d", sanity.file_count)     # should be 0 on first run
-
-file_rec = client.vectors.add_file_to_vector_store(
-    vector_store_id=store.id,
-    file_path=FILE_PATH,
-)
-    
-# --------------------------------------------------------------------- #
-# 3.  Add a file (chunk → embed → upsert → register)
-# --------------------------------------------------------------------- #
-FILE_PATH = Path("Donoghue_v_Stevenson__1932__UKHL_100__26_May_1932_.pdf")   # any local text file
-
-client.vectors.add_file_to_vector_store(
-    vector_store_id=store.id,
-    file_path=FILE_PATH,
+    base_url=os.getenv("PROJECTDAVID_BASE_URL", "https://api.projectdavid.co.uk"),
+    api_key=os.environ["PROJECTDAVID_API_KEY"],
 )
 
-# --------------------------------------------------------------------- #
-# 4.  Run a similarity search
-# --------------------------------------------------------------------- #
-env = client.vectors.search_vector_store_openai(
-    vector_store_id=store.id,
-    query_text="proof, and in my opinion she is entitled to have an opportunity",
-    top_k=3,
+assistant = client.assistants.create_assistant(
+    name="Knowledge Assistant",
+    model="hyperbolic/deepseek-v4-flash-0731",
+    instructions="Answer questions using the indexed documents.",
+    tools=[{"type": "file_search"}],
+    tool_resources={"file_search": {"vector_store_ids": [os.environ["VECTOR_STORE_ID"]]}},
 )
-
-import json, pprint
-pprint.pp(json.dumps(env, indent=2))
-
-
-env = client.vectors.answer_question(
-    vector_store_id=store.id,
-    query_text="Explain the neighbour principle in Donoghue v Stevenson.",
-)
-
-
-
-
-
-
-
+print(assistant.id)
 ```
+
+```curl interface=curl
+BASE_URL="${PROJECTDAVID_BASE_URL:-https://api.projectdavid.co.uk}"
+BASE_URL="${BASE_URL%/}"
+: "${PROJECTDAVID_API_KEY:?Set your API key}"
+: "${VECTOR_STORE_ID:?Set your vector store ID}"
+
+jq -n --arg id "$VECTOR_STORE_ID" '{
+  name: "Knowledge Assistant",
+  model: "hyperbolic/deepseek-v4-flash-0731",
+  instructions: "Answer questions using the indexed documents.",
+  tools: [{type: "file_search"}],
+  tool_resources: {file_search: {vector_store_ids: [$id]}}
+}' | curl -fsS "$BASE_URL/v1/assistants" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+  -H 'Content-Type: application/json' \
+  --data-binary @-
+```
+
+## Execute
+
+Use the returned assistant in the [Inference](/docs/sdk-inference) workflow, with a registered provider credential. Create a thread, message and run, then consume the inference stream. A tool declaration makes the capability available; it does not guarantee that the model will invoke it.
+
+Ask a question about the indexed documents. The model and runtime must support file search. If retrieval is poor, check that ingestion completed, the correct store is attached and the embedding configuration is compatible. Test direct retrieval using the Vector Stores guide before diagnosing the assistant's synthesis.
+
+## Reference
+
+- [Vector Stores](/docs/sdk-Vector-Store)
+- [Vector Stores SDK Reference](/docs/sdk-reference-vector-stores)
+- [Tools](/docs/sdk-tools)
+- [Inference](/docs/sdk-inference)

@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
-import { useParams } from 'react-router-dom';
-import { pages } from '../../lib/docs.js';
+import { Navigate, useLocation, useParams } from 'react-router-dom';
+import { pages, resolveSlug } from '../../lib/docs.js';
 
 import MarkdownPage from '../../components/MarkdownPage/MarkdownPage.jsx';
 import ApiReferencePage from './ApiReferencePage.jsx';
@@ -11,6 +11,9 @@ const OpenApiReferencePage = lazy(
 
 export default function DocPage() {
   const { slug } = useParams();
+  const { hash, search } = useLocation();
+  const canonical = resolveSlug(slug);
+  if (canonical !== slug) return <Navigate to={`/docs/${canonical}${search}${hash}`} replace />;
 
   if (!slug) {
     return <div>404 - Invalid Page Route</div>;

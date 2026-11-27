@@ -7,90 +7,70 @@ nav_order: 7
 
 # Tools
 
-Tools allow an assistant to interact with external systems, data sources, and services.
-There are two categories: platform tools built into the Entities API, and developer-defined
-tools that you implement and register yourself.
+Tools extend an assistant beyond text generation. The integration you choose
+determines where the requested operation is executed.
 
-## Platform Tools
-
-| Tool | Description |
+| Integration | Execution |
 |---|---|
-| [**computer**](/docs/sdk-computer) | Gives the assistant access to a containerised Linux environment connected to the internet. |
-| [**web_search**](/docs/sdk-web-search) | Allows the assistant to query a search engine and synthesize responses from live web content. |
-| [**deep_research**](/docs/sdk-deep-research) | Designed for queries requiring multi-hop reasoning, evidence gathering, and long-horizon synthesis across multiple inference passes. |
-| [**file_search**](/docs/sdk-file-search) | Allows the assistant to search, retrieve, and utilize files stored within its accessible vector stores. |
-| [**code_interpreter**](/docs/sdk-code-interpreter) | Allows the assistant to execute Python code, draft documents, and perform data analysis in a secure sandbox environment. |
+| Platform tools | Project David runtime |
+| Local functions | Your application |
+| MCP tools | Registered remote MCP server |
 
-## Developer-defined Tools
+## Platform tools
 
-Developer-defined tools are custom extensions you implement and register on an assistant.
-They follow a standard function-calling interface and allow the assistant to invoke
-your own APIs, databases, or services during a run.
+| Capability | Purpose |
+|---|---|
+| [Computer](/docs/sdk-computer) | Interact with a containerised Linux environment. |
+| [Web search](/docs/sdk-web-search) | Search and retrieve web content. |
+| [Deep research](/docs/sdk-deep-research) | Gather evidence and synthesise findings across multiple inference passes. |
+| [File search](/docs/sdk-file-search) | Retrieve relevant content from vector stores. |
+| [Code interpreter](/docs/sdk-code-interpreter) | Execute Python and produce files in a sandbox. |
 
-A tool is defined by a **function schema** — a description of the tool's name, purpose,
-and expected parameters. The model may emit a function call matching this schema,
-but it does not execute the function. Execution is always performed by your runtime.
+Configure the assistant for the capabilities it needs. Some capabilities use
+assistant settings or associated resources in addition to tool declarations.
+Availability depends on the runtime configuration and inference model.
 
-### Defining a Tool
+See each capability guide for its configuration and execution requirements.
 
-Pass a `tools` array when creating or updating an assistant:
+## Local functions
 
-```python
-from projectdavid import Entity
+Define a function schema in the assistant's `tools` array using
+`client.assistants.create_assistant()` or `client.assistants.update_assistant()`.
+The corresponding HTTP operations are `POST /v1/assistants` and
+`PUT /v1/assistants/{assistant_id}`.
 
-client = Entity()
+A schema declares the function name, description and argument structure;
+it does not register executable application code. During inference, your
+application handles the requested function call, validates and authorizes
+its arguments, executes the operation and submits the result.
 
-assistant = client.assistants.create_assistant(
-    name="Flighty",
-    instructions="You are a helpful flight assistant.",
-    model="gpt-oss-120b",
-    tools=[
-        {
-            "type": "function",
-            "function": {
-                "name": "get_flight_times",
-                "description": "Get departure and arrival times for a flight.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "departure": {"type": "string"},
-                        "arrival":   {"type": "string"}
-                    },
-                    "required": ["departure", "arrival"]
-                }
-            }
-        }
-    ]
-)
-```
+See [Function calling](/docs/function-calling-and-tool-execution)
+for the execution and continuation workflow.
 
-### Updating Tools
+## MCP tools
 
-Tool schemas can be updated or replaced at any time:
+Use MCP to connect an assistant to tools exposed by a remote Model Context
+Protocol server. Register the server, discover its tools and attach only
+the tools the assistant needs.
 
-```python
-client.assistants.update_assistant(
-    assistant_id="your_assistant_id",
-    tools=[
-        {
-            "type": "function",
-            "function": {
-                "name": "get_flight_times",
-                "description": "Get departure and arrival times for a flight.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "departure": {"type": "string"},
-                        "arrival":   {"type": "string"}
-                    },
-                    "required": ["departure", "arrival"]
-                }
-            }
-        }
-    ]
-)
-```
+| Operation | Python SDK | HTTP API |
+|---|---|---|
+| Register | `client.mcp.create_server()` | `POST /v1/mcp/servers` |
+| Discover | `client.mcp.discover_tools()` | `GET /v1/mcp/servers/{server_id}/tools` |
+| Attach | `client.mcp.attach_assistant_tools()` | `POST /v1/assistants/{assistant_id}/mcp-tools` |
 
-Once a schema is attached, the model may emit function call outputs matching it.
-Detecting those outputs, validating arguments, executing the function, and returning
-results to the model is covered in the [Function Calls](/docs/function-calling-and-tool-execution) guide.
+MCP attachments retain their registered server association. Do not treat a
+remote MCP tool as an application-local function merely by copying its schema
+into the assistant's `tools` array.
+
+Manage server credentials separately from application authentication.
+See [Authentication](/docs/api_keys) and the MCP reference for the registration,
+attachment and credential management interfaces.
+
+## Reference
+
+- [Assistants](/docs/sdk-assistants)
+- [Function calling](/docs/function-calling-and-tool-execution)
+- [MCP SDK Reference](/docs/sdk-reference-mcp)
+- [Actions SDK Reference](/docs/sdk-reference-actions)
+- [HTTP API Reference](/docs/api-reference)

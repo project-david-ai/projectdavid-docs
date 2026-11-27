@@ -27,6 +27,7 @@
   color: #3b82f6;
   text-decoration: none;
 }
+
 .markdown-body a:hover {
   text-decoration: underline;
 }
@@ -36,11 +37,13 @@
   width: 100%;
   overflow-x: auto;
 }
+
 .markdown-body .mermaid svg {
   width: 100% !important;
   height: auto !important;
   max-width: 100%;
 }
+
 .markdown-body .mermaid svg text {
   font-size: 16px !important;
   font-weight: 600 !important;
@@ -70,22 +73,26 @@
   border-collapse: collapse;
   font-size: 0.855rem;
   margin: 1.75rem 0;
-  overflow-x: auto;
-  display: block;
+  display: table;
 }
+
 .markdown-body thead tr {
   border-bottom: 1px solid #d1d5db;
 }
+
 .markdown-body tbody tr {
   border-bottom: 1px solid #f0f0f0;
   transition: background 0.12s ease;
 }
+
 .markdown-body tbody tr:last-child {
   border-bottom: none;
 }
+
 .markdown-body tbody tr:hover {
   background-color: #f8fafc;
 }
+
 .markdown-body th {
   padding: 0.6rem 1rem;
   text-align: left;
@@ -96,16 +103,19 @@
   color: #9ca3af;
   white-space: nowrap;
 }
+
 .markdown-body td {
   padding: 0.55rem 1rem;
   color: #374151;
   vertical-align: middle;
   line-height: 1.5;
 }
+
 .markdown-body td:nth-child(n+4),
 .markdown-body th:nth-child(n+4) {
   text-align: center;
 }
+
 .markdown-body td code {
   font-size: 0.78rem;
   padding: 0.15em 0.45em;
@@ -161,6 +171,8 @@
   }
 
   .markdown-body table {
+    display: block;
+    overflow-x: auto;
     font-size: 0.82rem;
     -webkit-overflow-scrolling: touch;
   }
@@ -182,6 +194,7 @@
     min-width: 480px;
   }
 }
+
 @media (max-width: 767px) {
   .markdown-body img {
     max-width: 100%;
@@ -201,4 +214,3 @@
     -webkit-overflow-scrolling: touch;
   }
 }
-

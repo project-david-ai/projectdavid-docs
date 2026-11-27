@@ -7,325 +7,59 @@ nav_order: 1
 
 # Project David Platform
 
-> This guide is for operators who want the fastest path to a running sovereign AI stack. No source code required. If you want to run from source or contribute to the codebase, see [Project David Core](/docs/core-overview) instead.
+Deploy Project David on your own infrastructure using pre-built container images. The `projectdavid-platform` package provides the `pdavid` CLI, which manages the runtime through Docker Compose.
 
-`projectdavid-platform` is the containerised deployment of Project David Core. It pulls pre-built Docker images from Docker Hub and brings up the complete sovereign AI infrastructure stack with a single command.
+[Project David Core](/docs/core-overview) is the runtime and source distribution. Platform is its packaged deployment interface. Neither requires you to manage model weights or GPU scheduling to use a supported hosted inference provider.
 
----
+## Deployment
 
+You need Docker with Compose, Python 3.10 or later, sufficient resources for the services you deploy, and a valid Platform licence. The base deployment does not require a local GPU.
 
-> The platform deploys the same stack as Core. The difference is the deployment path — pip install instead of git clone.
-
----
-
-## How It All Connects
-
-![Core to Platform Pipeline](/projectdavid-core-to-platform-pipeline.svg)
-
-> Every component of the sovereign AI stack — from SDK client through inference provider to the streaming response — in a single view. This is what `pdavid --mode up` brings to life.
-
----
-
-## Prerequisites
-
-- Docker with Docker Compose plugin
-- Python 3.10+
-- 8GB RAM minimum (16GB recommended for GPU inference)
-- NVIDIA GPU + [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) for GPU inference (optional)
-
----
-
-## Quick Start
-
-**1. Install the platform package.**
+From a dedicated, empty runtime directory:
 
 ```bash
 pip install projectdavid-platform
-```
-
-**2. Create a dedicated working directory and start the stack.**
-
-```bash
-mkdir ~/projectdavid && cd ~/projectdavid
 pdavid --mode up
 ```
 
-On first run the platform generates a `.env` file with all secrets and a set of Docker Compose files wired to those secrets. Both are created once and never overwritten on subsequent runs.
+Follow [Self-hosted Setup](/docs/boot_strap_guide) for complete installation, licence requirements, admin bootstrap and application access.
 
-**3. Provision your admin credentials.**
+## Runtime
 
-```bash
-pdavid bootstrap-admin
-```
+The runtime directory holds the deployment configuration, generated credentials and local runtime state. Its location is resolved in this order:
 
-Expected output:
+1. Explicit `--runtime-dir` option.
+2. `PDAVID_RUNTIME_HOME` environment variable.
+3. Current working directory.
 
-```
-================================================================
-  Bootstrap complete.
-  ADMIN_API_KEY : ad_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-  Store this key securely — it will not be shown again.
-================================================================
-```
+Use the same runtime directory for subsequent operations. Protect the `.env` file and back up persistent storage separately. Runtime configuration may be reconciled when the installed package changes; do not assume generated files are immutable.
 
-> Store this key immediately. It is shown exactly once.
+## Connect an application
 
-**4. Provision your first user.**
+A self-hosted deployment exposes the same resource and inference interfaces as the hosted API. Use your deployment's API base URL and a dedicated application API key. Administrative credentials are reserved for administrative operations.
 
-```python
-import os
-from projectdavid import Entity
+Model inference is routed through supported providers. Self-hosting gives you control over the runtime and its stored data, but requests sent to external providers remain subject to their processing and retention policies. Self-hosting alone does not imply air-gapped operation or regulatory compliance.
 
-client = Entity(api_key=os.getenv("ADMIN_API_KEY"))
+## Upgrade
 
-new_user = client.users.create_user(
-    full_name="Kevin Flynn",
-    email="flynn@encom.com",
-    is_admin=False,
-)
-
-api_key = client.keys.create_key_for_user(
-    target_user_id=new_user.id,
-    key_name="production"
-)
-print(api_key.plain_key)
-```
-
-> Do not use the admin key for general API calls. Issue dedicated user keys for all application access.
-
----
-
-## What Gets Created on First Run
-
-`pdavid --mode up` writes the following files and directories into your current working directory. Run it from a dedicated empty directory — not your home directory or a shared project folder.
-
-| Path | What it is |
-|---|---|
-| `.env` | All generated secrets and configuration — never committed to version control |
-| `docker-compose.yml` | Base stack Compose file |
-| `docker-compose.gpu.yml` | GPU overlay (Ollama + vLLM) |
-| `docker-compose.ollama.yml` | Ollama-only overlay |
-| `docker-compose.vllm.yml` | vLLM-only overlay |
-| `docker-compose.training.yml` | Sovereign Forge training overlay |
-| `docker/nginx/nginx.conf` | nginx reverse proxy config |
-| `docker/otel/otel-config.yaml` | OpenTelemetry collector config |
-| `docker/searxng/settings.yml` | SearXNG web search config |
-| `.dockerignore` | Prevents secrets being copied into images |
-| `shared_data/` | Mounted volume for file uploads, datasets, and model adapters |
-
-All of these are installed once and never overwritten on subsequent runs — local edits are preserved. The platform detects existing files and skips them.
-
-> A common convention is `~/projectdavid/` or `/opt/projectdavid/` for the working directory.
-
----
-
-## Stack Modes
-
-### Base stack
-
-```bash
-pdavid --mode up
-```
-
-Starts the core platform — API, database, sandbox, vector search, web search, observability.
-
-### With GPU inference
-
-```bash
-# Ollama only
-pdavid --mode up --ollama
-
-# vLLM only (static inference server)
-pdavid --mode up --vllm
-
-# Both Ollama and vLLM
-pdavid --mode up --gpu
-```
-
-Requires NVIDIA GPU and nvidia-container-toolkit.
-
-### With Sovereign Forge (training pipeline)
-
-```bash
-# Training stack + Ray cluster
-pdavid --mode up --training
-
-# Full sovereign stack — Ollama + static vLLM + training
-pdavid --mode up --gpu --training
-```
-
-> `--training` starts the training API, the Ray-based training worker, and the DeploymentSupervisor actor. It does **not** start a static vLLM container — instead, the DeploymentSupervisor dynamically spawns dedicated `pd_vllm_*` inference containers for each active deployment as models are activated via the SDK. Use `--gpu --training` if you also want Ollama and a static vLLM server running alongside.
-
-Requires NVIDIA GPU and nvidia-container-toolkit.
-
----
-
-## How Inference Containers Are Spawned
-
-When `--training` is active, the `DeploymentSupervisor` Ray actor runs continuously inside the training worker. Every 20 seconds it queries the `inference_deployments` table and reconciles container state:
-
-- If a deployment is marked `pending` or its container has stopped, the supervisor spawns a new `pd_vllm_{deployment_id}` Docker container with the correct base model, LoRA adapter, and `tensor_parallel_size`.
-- Container IPs are written back to the ledger so the API can route inference requests to the correct instance.
-- Port conflicts are resolved automatically — any container holding the target port is evicted before the new one starts.
-
-This means vLLM instances come up and go down in response to SDK-driven deployment activations, not CLI flags.
-
----
-
-## CLI Reference
-
-### Stack management
-
-| Command | Description |
-|---|---|
-| `pdavid --mode up` | Start the stack (default) |
-| `pdavid --mode up --pull` | Pull latest images before starting |
-| `pdavid --mode down_only` | Stop the stack |
-| `pdavid --mode up --down` | Stop then restart |
-| `pdavid --mode logs --follow` | Tail all service logs |
-| `pdavid --mode logs --services api --tail 100` | Tail specific service logs |
-| `pdavid --mode build` | Build images only |
-| `pdavid --mode both` | Build then start |
-
-### Service targeting
-
-| Command | Description |
-|---|---|
-| `pdavid --mode up --services api db qdrant` | Start specific services only |
-| `pdavid --mode up --exclude samba` | Start all services except samba |
-
-### Stack options
-
-| Option | Description |
-|---|---|
-| `--training` | Start Sovereign Forge — training API, Ray worker, DeploymentSupervisor. Requires NVIDIA GPU |
-| `--gpu` | Start Ollama + static vLLM. Requires NVIDIA GPU |
-| `--ollama` | Start Ollama only. Requires NVIDIA GPU |
-| `--vllm` | Start static vLLM server only. Requires NVIDIA GPU |
-| `--force-recreate` | Recreate all containers |
-| `--pull` | Pull latest images before starting |
-| `--build-before-up` | Build before starting |
-| `--no-cache` | Build without Docker layer cache |
-| `--attached` / `-a` | Run in foreground |
-| `--down` | Stop before starting |
-| `--clear-volumes` / `-v` | Remove volumes on down |
-| `--verbose` | Enable debug logging |
-
-### Log options
-
-| Option | Description |
-|---|---|
-| `--follow` / `-f` | Follow log output |
-| `--tail N` | Show last N lines |
-| `--timestamps` / `-t` | Show timestamps |
-| `--no-log-prefix` | Omit service name prefix |
-
-### Danger
-
-| Command | Description |
-|---|---|
-| `pdavid --nuke` | Destroy all stack data — requires typed confirmation |
-
----
-
-## Configuration
-
-### Setting variables
-
-```bash
-# Set a single variable
-pdavid configure --set HF_TOKEN=hf_abc123
-
-# Set multiple variables
-pdavid configure --set VLLM_MODEL=Qwen/Qwen2.5-VL-7B-Instruct
-pdavid configure --set TRAINING_PROFILE=standard
-
-# Interactive mode
-pdavid configure --interactive
-```
-
-### Common configuration examples
-
-```bash
-# HuggingFace token — required for gated models
-pdavid configure --set HF_TOKEN=hf_abc123
-
-# Switch vLLM model
-pdavid configure --set VLLM_MODEL=Qwen/Qwen2.5-VL-7B-Instruct
-
-# Set training profile (laptop | standard | high_end)
-pdavid configure --set TRAINING_PROFILE=standard
-
-# Join an existing Ray cluster
-pdavid configure --set RAY_ADDRESS=ray://192.168.1.10:10001
-```
-
-### Training profiles
-
-| Profile | Use case |
-|---|---|
-| `laptop` | Conservative VRAM, small batch sizes — RTX 3060 class and below |
-| `standard` | Balanced defaults — RTX 3080 / 4070 class |
-| `high_end` | Maximum throughput — 24GB+ VRAM (RTX 3090, 4090, A100) |
-
----
-
-## Upgrading
-
-When a new version of the platform is available, the CLI will notify you on the next run:
-
-```
-============================================================
-  Platform update detected
-============================================================
-  Installed : 1.92.0
-  Running   : 1.91.0
-
-  To apply the update and pull the latest container images:
-
-    pdavid --mode up --pull
-
-  Your data and secrets are not affected.
-============================================================
-```
-
-To upgrade:
+Review release changes and back up persistent data, credentials and deployment configuration before upgrading. From the existing runtime directory:
 
 ```bash
 pip install --upgrade projectdavid-platform
 pdavid --mode up --pull
 ```
 
-Your data lives in named Docker volumes and is not affected by upgrades. Database migrations run automatically on container start.
+The first command upgrades the deployment package; the second starts the stack with an image pull. Verify service health and application access after the upgrade. Do not remove volumes as part of a routine upgrade.
 
----
+## Licence
 
-## Scale-Out — Adding a Second GPU Node
+Platform startup requires a valid commercial licence. Project David Core is distributed under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/). Commercial use requires a separate licence. Contact [licensing@projectdavid.co.uk](mailto:licensing@projectdavid.co.uk).
 
-To add a remote GPU node to the Ray cluster:
+## Reference
 
-**On the remote machine:**
-
-```bash
-pip install projectdavid-platform
-pdavid configure --set RAY_ADDRESS=ray://<head_ip>:10001
-docker compose -f docker-compose.yml -f docker-compose.training.yml up -d training-worker
-```
-
-Ray discovers the node automatically. No code changes required.
-
----
-
-## Related
-
-- [Project David Core](/docs/core-overview) — run from source, contribute to the codebase
-- [SDK Quick Start](/docs/sdk-quick-start) — build your first assistant
-- [Platform Commands](/docs/projectdavid-platform-commands) — full command reference
-- [Configuration Reference](/docs/platform-configuration) — environment variable reference
-
----
-
-## License
-
-Distributed under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/).
-Commercial use requires a separate licence — contact [licensing@projectdavid.co.uk](mailto:licensing@projectdavid.co.uk).
+- [Self-hosted Setup](/docs/boot_strap_guide)
+- [Platform Commands](/docs/boot_strap_guide#runtime-management)
+- [Configuration Reference](/docs/platform-configuration)
+- [Project David Core](/docs/core-overview)
+- [Authentication](/docs/api_keys)
+- [Quick Start](/docs/sdk-quick-start)

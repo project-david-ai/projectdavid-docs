@@ -1,124 +1,183 @@
-
-# Open Source Dev Environment Bootstrap Guide
-
-A step-by-step guide to get your local development environment up and running.
-
 ---
+title: Self-hosted setup
+category: projectdavid-platform
+slug: boot_strap_guide
+nav_order: 0
+---
+
+# Self-hosted setup
+
+Deploy Project David using the Platform CLI.
 
 ## Prerequisites
 
-- Python 3.10+  
-- Docker & Docker Compose  
-- A copy of the repository cloned locally  
-- Your `.env` file in the project root (do **not** commit secrets)
+- Python
+- Docker with Docker Compose
+- A valid Platform licence
 
----
+GPU hardware is not required for the base stack.
 
-## 1. Create Initial Admin User
+## Install
 
+```bash
+pip install projectdavid-platform
+```
 
-1. **Build the initial containers**  
-   ```bash
-   python start.py
-   ```
+## Start the runtime
 
-2. **Run the bootstrap script**  
-   ```bash
-   python scripts/bootstrap_admin.py
-   ```
-3. **Locate credentials**  
-   - A file named `admin_credentials.txt` will be generated.  
-   - **Do NOT** commit this file to Git.
-4. **Populate your `.env`**  
-   Open `.env` and add:
-   ```dotenv
-   ADMIN_API_KEY=<value from admin_credentials.txt>
-   ADMIN_USER_ID=<value from admin_credentials.txt>
-   ```
+Create a dedicated directory for your runtime.
 
-The Admin user API key, ADMIN_API_KEY should be automatically populated in your .env, but it doesn't 
-hurt to double-check, and add the value from admin_credentials.txt if it is not already there.
+```bash
+mkdir projectdavid-runtime
+cd projectdavid-runtime
 
+pdavid --mode up
+```
 
----
+Platform prepares the runtime configuration, generates
+initial secrets and starts the Docker services.
 
-## 2. Create Initial Normal User
+The runtime directory holds your configuration and
+persistent runtime state. Run subsequent Platform
+commands from this directory.
 
-1. **Run the user‐creation script**  
-   ```bash
-   python scripts/create_user.py
-   ```
-2. **Follow the interactive prompts**  
-   - Copy the generated API key and user ID at the end.
+## Bootstrap the administrator
 
-The create user script, create_user.py is a flexible reusable script used to provision consumer level 
-api users. Please note that this API key is meant for use by consumer users of your instance of Entities API. 
-There is no limit on the number of users you can provision. 
+```bash
+pdavid bootstrap-admin
+```
 
----
-## 3. Rebuild & Restart the API Service
+Core creates the administrator credential and Platform
+persists it in the runtime `.env` file as `ADMIN_API_KEY`.
 
-You must rebuild the API (and sandbox) service so that new environment variable for the admin API key 
-is applied to the current container instance.
+The bootstrap result identifies the administrator and
+reports whether a new key was created.
 
-1. **Tear down any running containers**  
-   ```bash
-   python start.py --down
-   ```
+If an administrator already exists, Platform attempts
+to reuse the existing credential.
 
-2. **Rebuild services**  
-   - **Individually**:  
-     ```bash
-     python start.py --mode build --service api
-     python start.py --mode build --service sandbox
-     ```  
-   - **Or both at once**:  
-     ```bash
-     python start.py --mode both
-     ```
+No manual database configuration or direct bootstrap
+script invocation is required for a standard installation.
 
----
+## Verify the runtime
 
-## 4. Configure Your Applications
+```curl
+curl -fsS http://localhost:80/v1/health
+```
 
-Whether you’re working on the backend or frontend:
+The health endpoint reports the runtime's availability.
 
-- Ensure your application’s environment (or settings) includes:
-  ```dotenv
-  PROJECTDAVID_API_KEY=<from step 2>
-  ENTITIES_USER_ID=<from step 2>
-  ```
+## Connect an application
 
----
+Install the Python SDK if your application uses Python.
 
-## 5. Verify
+```bash
+pip install projectdavid
+```
 
-1. **Start the stack**  
-   ```bash
-   python start.py --mode up
-   ```
-2. **Log in as Admin**  
-   - Use the credentials from `admin_credentials.txt`  
-   - Confirm that you can create and view resources.
-3. **Log in as Normal User**  
-   - Use the credentials you saved from the create_user script  
-   - Ensure permissions are applied correctly.
+Provision a non-administrative API key for your application
+and store it in the application's environment.
 
----
+```dotenv
+PROJECTDAVID_API_KEY=your_application_api_key
+```
 
-You’re now ready to develop against the open-source API stack! 🎉
+Connect to your local instance.
 
-1. **Use**  
-   ```bash
-   !pip install projectdavid
-   
-   from projectdavid import Entity
-    
-   client = Entity(
-    base_url=os.getenv("BASE_URL", "http://localhost:9000"),
-    api_key=os.getenv("PROJECTDAVID_API_KEY")
-   )
-   
-   ```
+```python interface=python
+import os
 
+from projectdavid import Entity
 
+client = Entity(
+    base_url="http://localhost:80",
+    api_key=os.environ["PROJECTDAVID_API_KEY"],
+)
+```
+
+```curl interface=curl
+curl -fsS http://localhost:80/v1/assistants \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY"
+```
+
+Follow the [Quick Start](/docs/sdk-quick-start)
+using your local API base URL.
+
+## Runtime directory
+
+Platform resolves the runtime directory in the following
+order:
+
+| Priority | Source |
+|---|---|
+| 1 | `--runtime-dir` |
+| 2 | `PDAVID_RUNTIME_HOME` |
+| 3 | Current working directory |
+
+To operate an existing runtime from another directory:
+
+```bash
+pdavid --runtime-dir ./projectdavid-runtime --mode up
+```
+
+Use the same runtime directory for startup, configuration
+and administrator provisioning.
+
+## Automated provisioning
+
+Local deployment orchestrators can request a structured
+bootstrap result and a separate credential handoff.
+
+```bash
+pdavid bootstrap-admin --json --credential-file ./admin-credential.json
+```
+
+The credential file receives the administrator credential.
+The plaintext credential is omitted from the returned
+command result when credential handoff is enabled.
+
+Treat the credential file as a secret.
+
+## Credential recovery
+
+Platform does not silently replace an existing administrator
+credential when its original plaintext is unavailable
+or its prefix does not match Core's bootstrap result.
+
+Restore the original credential from a secure backup
+or perform an authorized credential rotation.
+
+If Platform detects an existing runtime identity but
+the runtime `.env` file is missing, startup is refused
+to prevent the accidental replacement of secrets.
+
+Restore the original configuration before attempting
+to restart the runtime.
+
+Do not delete persistent volumes or regenerate secrets
+as a credential recovery procedure.
+
+## Runtime management
+
+| Operation | Command |
+|---|---|
+| Start | `pdavid --mode up` |
+| Stop | `pdavid --mode down_only` |
+| Update images | `pdavid --mode up --pull` |
+| Follow logs | `pdavid --mode logs --follow` |
+| Administrator bootstrap | `pdavid bootstrap-admin` |
+| Configure | `pdavid configure --interactive` |
+
+## Security
+
+Protect the runtime configuration, credential files and
+backups. Treat initial startup output as sensitive.
+
+Use non-administrative credentials for application access.
+Never commit runtime secrets to source control.
+
+## Reference
+
+- [Quick Start](/docs/sdk-quick-start)
+- [Authentication](/docs/api_keys)
+- [API Reference](/docs/api-reference)

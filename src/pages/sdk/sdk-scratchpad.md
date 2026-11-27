@@ -1,776 +1,216 @@
 ---
-title: Scratchpad Client
+title: Scratchpads
 category: sdk
 slug: sdk-scratchpad
 nav_order: 1
 ---
 
+# Scratchpads
 
+A Scratchpad is a thread-scoped resource for recording working state outside
+conversation messages. Each owned thread has at most one canonical Scratchpad.
+Applications manage it through `client.scratchpads` or the HTTP API, independently
+of the model-facing scratchpad tool interface.
 
-# Scratchpad Client
+| State | Purpose |
+|---|---|
+| Metadata | Application-defined resource attributes |
+| Content | Replaceable textual working state |
+| Entries | Ordered, append-oriented ledger |
 
-`ScratchpadsClient` provides the SDK interface for first-class Scratchpad resources.
+## Configure
 
-It is separate from the model-facing scratchpad tool methods exposed through
-`ToolsClient`.
+Complete [Authentication](/docs/api_keys) and create a [Thread](/docs/sdk-threads).
+Set `PROJECTDAVID_THREAD_ID` to the ID of a thread you own. The cURL examples
+use Bash and `jq`; export the environment variables before running them.
+Run the examples in order in the same Python or shell session.
 
-The distinction is:
+```python interface=python
+import os
 
-```text
-ToolsClient.scratchpad_*
-    → model-facing compatibility API
-    → operates through the tool/runtime layer
+from dotenv import load_dotenv
+from projectdavid import Entity
 
-ScratchpadsClient
-    → first-class resource API
-    → addresses canonical Scratchpad resources by scratchpad ID
-```
+load_dotenv()
 
-`ScratchpadsClient` exposes four groups of operations:
-
-```text
-Resource plane
-Content plane
-Entry ledger
-Mutable-state lifecycle
-```
-
-All responses are validated against Project David Pydantic models before being
-returned to the caller.
-
----
-
-## Accessing the Client
-
-The client is exposed as the Scratchpad resource interface associated with an
-authenticated Project David SDK client.
-
-Conceptually:
-
-```python
-scratchpads = client.scratchpads
-```
-
-The exact top-level client construction depends on the SDK configuration used by
-the application.
-
-Every request is authenticated through the underlying `BaseAPIClient`.
-
----
-
-# Resource Plane
-
-The resource plane manages Scratchpad resources themselves.
-
-It handles creation, retrieval, listing, metadata updates, and deletion.
-
----
-
-## `create_scratchpad`
-
-Creates a Scratchpad associated with a thread.
-
-```python
-scratchpad = client.scratchpads.create_scratchpad(
-    thread_id="thread_abc123",
+client = Entity(
+    base_url=os.getenv("PROJECTDAVID_BASE_URL", "https://api.projectdavid.co.uk"),
+    api_key=os.environ["PROJECTDAVID_API_KEY"],
 )
+thread_id = os.environ["PROJECTDAVID_THREAD_ID"]
 ```
 
-### Signature
-
-```python
-create_scratchpad(
-    thread_id: str,
-) -> ScratchpadRead
-```
-
-### HTTP request
-
-```http
-POST /v1/scratchpads
-```
-
-### Request body
-
-```json
-{
-  "thread_id": "thread_abc123"
-}
-```
-
-### Returns
-
-```python
-ScratchpadRead
-```
-
-The returned object represents the newly created canonical Scratchpad resource.
-
-### Notes
-
-A Scratchpad is created against a specific `thread_id`.
-
-The caller does not supply a Scratchpad ID; the server creates the resource and
-returns its canonical representation.
-
----
-
-## `retrieve_scratchpad`
-
-Retrieves a Scratchpad directly by Scratchpad ID.
-
-```python
-scratchpad = client.scratchpads.retrieve_scratchpad(
-    scratchpad_id="scratchpad_abc123",
-)
-```
-
-### Signature
-
-```python
-retrieve_scratchpad(
-    scratchpad_id: str,
-) -> ScratchpadRead
-```
-
-### HTTP request
-
-```http
-GET /v1/scratchpads/{scratchpad_id}
-```
-
-### Returns
-
-```python
-ScratchpadRead
-```
-
-Use this method when the canonical Scratchpad ID is already known.
-
----
-
-## `retrieve_scratchpad_by_thread`
-
-Retrieves the Scratchpad associated with a thread.
-
-```python
-scratchpad = client.scratchpads.retrieve_scratchpad_by_thread(
-    thread_id="thread_abc123",
-)
-```
-
-### Signature
-
-```python
-retrieve_scratchpad_by_thread(
-    thread_id: str,
-) -> ScratchpadRead
-```
-
-### HTTP request
-
-```http
-GET /v1/threads/{thread_id}/scratchpad
-```
-
-### Returns
-
-```python
-ScratchpadRead
-```
-
-This is useful when the caller knows the thread but does not already have the
-Scratchpad ID.
-
----
-
-## `list_scratchpads`
-
-Lists Scratchpad resources visible to the authenticated caller.
-
-```python
-scratchpads = client.scratchpads.list_scratchpads()
-```
-
-### Signature
-
-```python
-list_scratchpads() -> ScratchpadList
-```
-
-### HTTP request
-
-```http
-GET /v1/scratchpads
-```
-
-### Returns
-
-```python
-ScratchpadList
-```
-
-No filtering or pagination parameters are exposed by this SDK method.
-
----
-
-## `update_scratchpad`
-
-Updates Scratchpad resource metadata.
-
-```python
-scratchpad = client.scratchpads.update_scratchpad(
-    scratchpad_id="scratchpad_abc123",
-    meta_data={
-        "purpose": "deep-research",
-        "stage": "verification",
-    },
-)
-```
-
-### Signature
-
-```python
-update_scratchpad(
-    scratchpad_id: str,
-    *,
-    meta_data: Dict[str, Any],
-) -> ScratchpadRead
-```
-
-### HTTP request
-
-```http
-PATCH /v1/scratchpads/{scratchpad_id}
-```
-
-### Request body
-
-```json
-{
-  "meta_data": {
-    "purpose": "deep-research",
-    "stage": "verification"
-  }
-}
-```
-
-### Returns
-
-```python
-ScratchpadRead
-```
-
-### Important
-
-This method updates the Scratchpad resource's `meta_data`.
-
-It does **not** replace Scratchpad textual content and does **not** append a
-ledger entry.
-
-For those operations use:
-
-```text
-set_content()
-append_entry()
-```
-
-respectively.
-
----
-
-## `delete_scratchpad`
-
-Deletes a Scratchpad resource.
-
-```python
-result = client.scratchpads.delete_scratchpad(
-    scratchpad_id="scratchpad_abc123",
-)
-```
-
-### Signature
-
-```python
-delete_scratchpad(
-    scratchpad_id: str,
-) -> ScratchpadDeleted
-```
-
-### HTTP request
-
-```http
-DELETE /v1/scratchpads/{scratchpad_id}
-```
-
-### Returns
-
-```python
-ScratchpadDeleted
-```
-
-This operates on the Scratchpad resource itself rather than merely clearing its
-mutable content.
-
----
-
-# Content Plane
-
-The content plane manages the Scratchpad's current textual working state.
-
-These methods operate on:
-
-```text
-/v1/scratchpads/{scratchpad_id}/content
-```
-
----
-
-## `get_content`
-
-Retrieves the current Scratchpad content.
-
-```python
-content = client.scratchpads.get_content(
-    scratchpad_id="scratchpad_abc123",
-)
-```
-
-### Signature
-
-```python
-get_content(
-    scratchpad_id: str,
-) -> ScratchpadContentRead
-```
-
-### HTTP request
-
-```http
-GET /v1/scratchpads/{scratchpad_id}/content
-```
-
-### Returns
-
-```python
-ScratchpadContentRead
-```
-
-This reads the Scratchpad's current content state without modifying it.
-
----
-
-## `set_content`
-
-Replaces the Scratchpad's current content.
-
-```python
-content = client.scratchpads.set_content(
-    scratchpad_id="scratchpad_abc123",
-    content="Current research plan and working state.",
-)
-```
-
-### Signature
-
-```python
-set_content(
-    scratchpad_id: str,
-    content: str,
-) -> ScratchpadContentRead
-```
-
-### HTTP request
-
-```http
-PUT /v1/scratchpads/{scratchpad_id}/content
-```
-
-### Request body
-
-```json
-{
-  "content": "Current research plan and working state."
-}
-```
-
-### Returns
-
-```python
-ScratchpadContentRead
-```
-
-### Important
-
-`set_content()` is a replacement operation.
-
-Use `append_entry()` when the intended operation is to add a new item to the
-Scratchpad entry ledger rather than replace the current content state.
-
----
-
-## `clear_content`
-
-Clears the Scratchpad's current content.
-
-```python
-result = client.scratchpads.clear_content(
-    scratchpad_id="scratchpad_abc123",
-)
-```
-
-### Signature
-
-```python
-clear_content(
-    scratchpad_id: str,
-) -> ScratchpadStateCleared
-```
-
-### HTTP request
-
-```http
-DELETE /v1/scratchpads/{scratchpad_id}/content
-```
-
-### Returns
-
-```python
-ScratchpadStateCleared
-```
-
-This clears the current content state only.
-
-It is distinct from:
-
-```text
-clear_entries()
-clear_scratchpad()
-delete_scratchpad()
-```
-
----
-
-# Entry Ledger
-
-The entry ledger provides append-oriented Scratchpad history.
-
-Entries are managed independently from the Scratchpad's current content.
-
----
-
-## `append_entry`
-
-Adds a new entry to the Scratchpad entry ledger.
-
-```python
-entry = client.scratchpads.append_entry(
-    scratchpad_id="scratchpad_abc123",
-    content="✅ Verified the source and recorded the result.",
-)
-```
-
-### Signature
-
-```python
-append_entry(
-    scratchpad_id: str,
-    content: str,
-) -> ScratchpadEntryRead
-```
-
-### HTTP request
-
-```http
-POST /v1/scratchpads/{scratchpad_id}/entries
-```
-
-### Request body
-
-```json
-{
-  "content": "✅ Verified the source and recorded the result."
-}
-```
-
-### Returns
-
-```python
-ScratchpadEntryRead
-```
-
-`append_entry()` creates an individual ledger entry rather than replacing the
-Scratchpad's current content.
-
----
-
-## `list_entries`
-
-Retrieves the Scratchpad entry ledger.
-
-```python
-entries = client.scratchpads.list_entries(
-    scratchpad_id="scratchpad_abc123",
-)
-```
-
-### Signature
-
-```python
-list_entries(
-    scratchpad_id: str,
-) -> ScratchpadEntryList
-```
-
-### HTTP request
-
-```http
-GET /v1/scratchpads/{scratchpad_id}/entries
-```
-
-### Returns
-
-```python
-ScratchpadEntryList
-```
-
-This returns the collection of entries associated with the Scratchpad.
-
----
-
-## `clear_entries`
-
-Clears the Scratchpad entry ledger.
-
-```python
-result = client.scratchpads.clear_entries(
-    scratchpad_id="scratchpad_abc123",
-)
-```
-
-### Signature
-
-```python
-clear_entries(
-    scratchpad_id: str,
-) -> ScratchpadStateCleared
-```
-
-### HTTP request
-
-```http
-DELETE /v1/scratchpads/{scratchpad_id}/entries
-```
-
-### Returns
-
-```python
-ScratchpadStateCleared
-```
-
-This clears ledger entries without deleting the Scratchpad resource itself.
-
-It is distinct from `clear_content()`, which operates on the current content
-state.
-
----
-
-# Mutable-State Lifecycle
-
-The mutable-state lifecycle API provides a single operation for clearing the
-Scratchpad's mutable state.
-
----
-
-## `clear_scratchpad`
-
-Clears the Scratchpad's mutable state.
-
-```python
-result = client.scratchpads.clear_scratchpad(
-    scratchpad_id="scratchpad_abc123",
-)
-```
-
-### Signature
-
-```python
-clear_scratchpad(
-    scratchpad_id: str,
-) -> ScratchpadStateCleared
-```
-
-### HTTP request
-
-```http
-POST /v1/scratchpads/{scratchpad_id}/clear
+```curl interface=curl
+set -euo pipefail
+BASE_URL="${PROJECTDAVID_BASE_URL:-https://api.projectdavid.co.uk}"
+THREAD_ID="${PROJECTDAVID_THREAD_ID:?Set the thread ID}"
+: "${PROJECTDAVID_API_KEY:?Set the Project David API key}"
 ```
 
-### Returns
+## Create a Scratchpad
 
-```python
-ScratchpadStateCleared
-```
-
-This is the Scratchpad-level clear operation.
-
-It should not be confused with:
-
-```text
-clear_content()
-    → DELETE /v1/scratchpads/{id}/content
-
-clear_entries()
-    → DELETE /v1/scratchpads/{id}/entries
-
-clear_scratchpad()
-    → POST /v1/scratchpads/{id}/clear
-
-delete_scratchpad()
-    → DELETE /v1/scratchpads/{id}
-```
-
-The SDK exposes these separately because they represent different resource
-operations.
-
----
-
-# Method Summary
-
-| Method | Plane | HTTP | Purpose | Returns |
-|---|---|---|---|---|
-| `create_scratchpad(thread_id)` | Resource | `POST /v1/scratchpads` | Create a Scratchpad for a thread | `ScratchpadRead` |
-| `retrieve_scratchpad(id)` | Resource | `GET /v1/scratchpads/{id}` | Retrieve by Scratchpad ID | `ScratchpadRead` |
-| `retrieve_scratchpad_by_thread(thread_id)` | Resource | `GET /v1/threads/{thread_id}/scratchpad` | Retrieve by thread ID | `ScratchpadRead` |
-| `list_scratchpads()` | Resource | `GET /v1/scratchpads` | List Scratchpads | `ScratchpadList` |
-| `update_scratchpad(id, meta_data=...)` | Resource | `PATCH /v1/scratchpads/{id}` | Update metadata | `ScratchpadRead` |
-| `delete_scratchpad(id)` | Resource | `DELETE /v1/scratchpads/{id}` | Delete resource | `ScratchpadDeleted` |
-| `get_content(id)` | Content | `GET /v1/scratchpads/{id}/content` | Read current content | `ScratchpadContentRead` |
-| `set_content(id, content)` | Content | `PUT /v1/scratchpads/{id}/content` | Replace current content | `ScratchpadContentRead` |
-| `clear_content(id)` | Content | `DELETE /v1/scratchpads/{id}/content` | Clear current content | `ScratchpadStateCleared` |
-| `append_entry(id, content)` | Entry ledger | `POST /v1/scratchpads/{id}/entries` | Append ledger entry | `ScratchpadEntryRead` |
-| `list_entries(id)` | Entry ledger | `GET /v1/scratchpads/{id}/entries` | Read entry ledger | `ScratchpadEntryList` |
-| `clear_entries(id)` | Entry ledger | `DELETE /v1/scratchpads/{id}/entries` | Clear entry ledger | `ScratchpadStateCleared` |
-| `clear_scratchpad(id)` | Lifecycle | `POST /v1/scratchpads/{id}/clear` | Clear mutable Scratchpad state | `ScratchpadStateCleared` |
-
----
-
-# Response Validation
-
-Every `ScratchpadsClient` method passes server responses through a declared
-Pydantic response model.
-
-For example:
+Create a Scratchpad for a thread that does not yet have one. The server
+assigns its ID and ownership; subsequent state operations use that ID.
+If the thread already has a Scratchpad, retrieve it by thread instead.
 
-```python
-return response_model.model_validate(response.json())
+```python interface=python
+scratchpad = client.scratchpads.create_scratchpad(thread_id=thread_id)
+scratchpad_id = scratchpad.id
+print(scratchpad_id)
 ```
 
-This means SDK callers receive validated Project David models rather than
-unstructured response dictionaries.
-
-If the server returns JSON that does not satisfy the expected schema, the client
-raises:
-
-```python
-ValueError(
-    "Scratchpad response validation failed: ..."
-)
-```
-
-The original Pydantic `ValidationError` is retained as the exception cause.
-
----
-
-# HTTP Errors
-
-HTTP errors are not converted into Scratchpad-specific exception classes.
-
-The client calls:
-
-```python
-response.raise_for_status()
-```
-
-and re-raises the resulting:
-
-```python
-httpx.HTTPStatusError
+```curl interface=curl
+SCRATCHPAD=$(jq -n --arg thread_id "$THREAD_ID" '{thread_id:$thread_id}' \
+  | curl -fsS "$BASE_URL/v1/scratchpads" \
+      -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+      -H "Content-Type: application/json" --data-binary @-)
+SCRATCHPAD_ID=$(jq -er '.id' <<< "$SCRATCHPAD")
+printf '%s\n' "$SCRATCHPAD_ID"
 ```
-
-This allows callers to inspect the normal HTTP response information:
-
-```python
-try:
-    scratchpad = client.scratchpads.retrieve_scratchpad(
-        "scratchpad_missing"
-    )
-except httpx.HTTPStatusError as exc:
-    print(exc.response.status_code)
-    print(exc.response.text)
-```
-
----
-
-# Usage Example
 
-A typical resource workflow can be expressed as:
+## Retrieve and list
 
-```python
-# Create a canonical Scratchpad for a thread.
-scratchpad = client.scratchpads.create_scratchpad(
-    thread_id="thread_abc123",
-)
+Resolve a Scratchpad from its thread, retrieve it directly by ID, or list
+resources visible to the authenticated caller. Listing returns a `data`
+array; the current interface has no pagination parameters.
 
+```python interface=python
+scratchpad = client.scratchpads.retrieve_scratchpad_by_thread(thread_id)
 scratchpad_id = scratchpad.id
 
-# Store current working content.
+record = client.scratchpads.retrieve_scratchpad(scratchpad_id)
+print(record.meta_data)
+
+for record in client.scratchpads.list_scratchpads().data:
+    print(record.id, record.thread_id)
+```
+
+```curl interface=curl
+SCRATCHPAD_ID=$(curl -fsS "$BASE_URL/v1/threads/$THREAD_ID/scratchpad" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" | jq -er '.id')
+
+curl -fsS "$BASE_URL/v1/scratchpads/$SCRATCHPAD_ID" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" | jq '.meta_data'
+
+curl -fsS "$BASE_URL/v1/scratchpads" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" | jq '.data[] | {id, thread_id}'
+```
+
+## Update metadata
+
+Use metadata to label application state, not to store the working body or
+append ledger entries.
+
+```python interface=python
+scratchpad = client.scratchpads.update_scratchpad(
+    scratchpad_id,
+    meta_data={"purpose": "research", "phase": "verification"},
+)
+```
+
+```curl interface=curl
+curl -fsS -X PATCH "$BASE_URL/v1/scratchpads/$SCRATCHPAD_ID" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"meta_data":{"purpose":"research","phase":"verification"}}'
+```
+
+## Working content
+
+Use `set_content()` to replace the current working body. Read it back with
+`get_content()`. This is a replacement operation, not an append operation.
+
+```python interface=python
 client.scratchpads.set_content(
     scratchpad_id,
-    "📌 Research plan: verify primary sources.",
+    "Research plan: verify primary sources.",
 )
-
-# Append an independently addressable ledger entry.
-client.scratchpads.append_entry(
-    scratchpad_id,
-    "✅ Primary source verified.",
-)
-
-# Read current state.
-content = client.scratchpads.get_content(scratchpad_id)
-entries = client.scratchpads.list_entries(scratchpad_id)
-
-# Update resource metadata.
-client.scratchpads.update_scratchpad(
-    scratchpad_id,
-    meta_data={
-        "phase": "complete",
-    },
-)
-
-# Clear mutable state when required.
-client.scratchpads.clear_scratchpad(scratchpad_id)
-
-# Delete the Scratchpad resource when it is no longer required.
-client.scratchpads.delete_scratchpad(scratchpad_id)
+state = client.scratchpads.get_content(scratchpad_id)
+print(state.content)
 ```
 
----
+```curl interface=curl
+curl -fsS -X PUT "$BASE_URL/v1/scratchpads/$SCRATCHPAD_ID/content" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"content":"Research plan: verify primary sources."}'
 
-# ScratchpadsClient vs Model Scratchpad Tools
-
-`ScratchpadsClient` should not be confused with the model-facing scratchpad tool
-surface.
-
-The two APIs serve different purposes:
-
-| API | Purpose |
-|---|---|
-| `ScratchpadsClient` | Application/SDK access to canonical Scratchpad resources |
-| `ToolsClient.scratchpad_*` | Compatibility/tool API used by model-facing runtime operations |
-
-The resource client addresses Scratchpads by canonical Scratchpad ID and exposes
-explicit resource, content, ledger, and lifecycle operations.
-
-The model-facing tool API remains a separate compatibility surface.
+curl -fsS "$BASE_URL/v1/scratchpads/$SCRATCHPAD_ID/content" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" | jq -r '.content'
 ```
+
+## Entry ledger
+
+Append observations or progress independently of the working body. Entries
+are returned in an ordered `data` array with their content and creation time.
+Individual entries cannot be edited through this API, but the ledger can be
+cleared. Do not use it as an immutable compliance audit log.
+
+```python interface=python
+client.scratchpads.append_entry(scratchpad_id, "Primary source verified.")
+
+for entry in client.scratchpads.list_entries(scratchpad_id).data:
+    print(entry.created_at, entry.content)
+```
+
+```curl interface=curl
+curl -fsS "$BASE_URL/v1/scratchpads/$SCRATCHPAD_ID/entries" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"content":"Primary source verified."}'
+
+curl -fsS "$BASE_URL/v1/scratchpads/$SCRATCHPAD_ID/entries" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" \
+  | jq '.data[] | {created_at, content}'
+```
+
+## Clear mutable state
+
+Choose the scope of the operation. Clearing state retains the Scratchpad
+resource and its metadata.
+
+| Scope | SDK method | HTTP operation |
+|---|---|---|
+| Content only | `clear_content(id)` | `DELETE /v1/scratchpads/{id}/content` |
+| Entries only | `clear_entries(id)` | `DELETE /v1/scratchpads/{id}/entries` |
+| Both | `clear_scratchpad(id)` | `POST /v1/scratchpads/{id}/clear` |
+
+The following example clears both content and entries. Run it only when
+that state is no longer needed.
+
+```python interface=python
+result = client.scratchpads.clear_scratchpad(scratchpad_id)
+print(result.scope, result.cleared)
+```
+
+```curl interface=curl
+curl -fsS -X POST "$BASE_URL/v1/scratchpads/$SCRATCHPAD_ID/clear" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" | jq '{scope, cleared}'
+```
+
+## Delete a Scratchpad
+
+Delete the resource itself only when it is no longer required. This is
+not the same as clearing its working state.
+
+```python interface=python
+result = client.scratchpads.delete_scratchpad(scratchpad_id)
+print(result.deleted)
+```
+
+```curl interface=curl
+curl -fsS -X DELETE "$BASE_URL/v1/scratchpads/$SCRATCHPAD_ID" \
+  -H "X-API-Key: $PROJECTDAVID_API_KEY" | jq '.deleted'
+```
+
+## Error handling
+
+The SDK validates responses against typed models. HTTP failures raise
+`httpx.HTTPStatusError`; response validation failures raise `ValueError`.
+With cURL, `-f` makes HTTP error responses return a non-zero exit status.
+
+## Reference
+
+- [Scratchpads SDK Reference](/docs/sdk-reference-scratchpads)
+- [Threads](/docs/sdk-threads)
+- [HTTP API Reference](/docs/api-reference)

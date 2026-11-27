@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Menu, X, ChevronDown, ChevronRight } from 'lucide-react';
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, matchPath, useLocation } from 'react-router-dom';
 
 import {
   groupedNavItems,
@@ -15,9 +15,16 @@ function SidebarGroup({
   groupKey,
   items,
   onNavClick,
-  defaultOpen = false,
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const { pathname } = useLocation();
+  const containsActivePage = items.some(({ route }) =>
+    matchPath({ path: route, end: true }, pathname)
+  );
+  const [open, setOpen] = useState(containsActivePage);
+
+  useEffect(() => {
+    if (containsActivePage) setOpen(true);
+  }, [pathname, containsActivePage]);
 
   const label =
     categoryDisplayNames[groupKey] ||
@@ -113,7 +120,6 @@ export default function DocsSidebar() {
             groupKey={groupKey}
             items={groupedNavItems[groupKey]}
             onNavClick={closeDrawer}
-            defaultOpen={false}
           />
         ))}
 

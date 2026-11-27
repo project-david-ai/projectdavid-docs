@@ -1,0 +1,97 @@
+name: Auto PR dev to main
+
+on:
+  workflow_run:
+    workflows: ["Lint, Build & Deploy projectdavid_docs"]
+    types: [completed]
+    branches: [dev]
+
+# Runs from the default branch. Never check out or execute dev/fork code.
+permissions:
+  contents: read
+
+concurrency:
+  group: auto-pr-${{ github.repository }}-dev
+  cancel-in-progress: false
+
+jobs:
+  auto-pr:
+    name: Open or retain dev to main PR
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch') &&
+      github.event.workflow_run.head_branch == 'dev' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify current dev passed CI and has changes
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const repo = context.repo;
+            core.setOutput('needed', 'false');
+            if (run.conclusion !== 'success' || !['push', 'workflow_dispatch'].includes(run.event) ||
+                run.head_branch !== 'dev' ||
+                run.head_repository?.full_name !== `${repo.owner}/${repo.repo}`) return;
+            const {data: ref} = await github.rest.git.getRef({...repo, ref: 'heads/dev'});
+            const approvedHead = ref.object.sha;
+            // Only the exact current dev SHA that passed CI is eligible.
+            if (approvedHead !== run.head_sha) return;
+            const {data: comparison} = await github.rest.repos.compareCommitsWithBasehead({
+              ...repo, basehead: `main...${approvedHead}`
+            });
+            if (comparison.ahead_by === 0) return;
+            core.setOutput('approved_head', approvedHead);
+            core.setOutput('needed', 'true');
+
+      - name: Obtain narrowly scoped GitHub App token
+        id: app-token
+        if: steps.check.outputs.needed == 'true'
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.AUTO_PR_APP_CLIENT_ID }}
+          private-key: ${{ secrets.AUTO_PR_APP_PRIVATE_KEY }}
+          permission-contents: read
+          permission-pull-requests: write
+
+      - name: Open PR once or reuse the existing PR
+        if: steps.check.outputs.needed == 'true'
+        uses: actions/github-script@v7
+        env:
+          APPROVED_HEAD: ${{ steps.check.outputs.approved_head }}
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const repo = context.repo;
+            const run = context.payload.workflow_run;
+            const approvedHead = process.env.APPROVED_HEAD;
+            if (!approvedHead || run.conclusion !== 'success' || !['push', 'workflow_dispatch'].includes(run.event) ||
+                run.head_branch !== 'dev' || run.head_sha !== approvedHead ||
+                run.head_repository?.full_name !== `${repo.owner}/${repo.repo}`) return;
+            const list = () => github.rest.pulls.list({
+              ...repo, state: 'open', base: 'main', head: `${repo.owner}:dev`
+            });
+            const {data: comparison} = await github.rest.repos.compareCommitsWithBasehead({
+              ...repo, basehead: `main...${approvedHead}`
+            });
+            if (comparison.ahead_by === 0) return;
+            // No unvalidated push may overtake CI while the App token is created.
+            const {data: ref} = await github.rest.git.getRef({...repo, ref: 'heads/dev'});
+            if (ref.object.sha !== approvedHead) return;
+            const {data: existing} = await list();
+            if (existing.length) {
+              core.info(`Existing PR #${existing[0].number} already tracks dev.`);
+              return;
+            }
+            try {
+              const {data: pr} = await github.rest.pulls.create({
+                ...repo, title: 'Promote dev to main', head: 'dev', base: 'main',
+                body: 'Automatically opened after successful dev CI. Human review and merge required. Subsequent dev pushes update this PR automatically; required checks must pass on its current head.'
+              });
+              core.info(pr.html_url);
+            } catch (error) {
+              if (error.status !== 422 || !(await list()).data.length) throw error;
+              core.info('An open dev to main PR already exists.');
+            }

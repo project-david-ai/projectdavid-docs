@@ -9,7 +9,7 @@ nav_order: 113
 
 # Vector Stores
 
-SDK version: `1.118.0`
+SDK version: `1.119.0`
 
 Access through `client.vectors`.
 

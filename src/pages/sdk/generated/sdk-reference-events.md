@@ -9,7 +9,7 @@ nav_order: 104
 
 # Streaming events
 
-SDK version: `1.118.0`
+SDK version: `1.119.0`
 
 Events are returned by the typed streaming interface. Import paths below reflect the source. Computer-related event types are listed as stream contracts, not as a standalone computer API.
 

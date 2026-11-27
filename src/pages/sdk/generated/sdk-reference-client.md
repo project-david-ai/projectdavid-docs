@@ -9,7 +9,7 @@ nav_order: 101
 
 # Client configuration
 
-SDK version: `1.118.0`
+SDK version: `1.119.0`
 
 `from projectdavid import Entity`
 
